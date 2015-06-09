@@ -1,7 +1,11 @@
 package com.j256.common.utils;
 
 /**
- * Little test program to show how to use the utility class.
+ * Little test program to show how to use the TwoFactorAuthUtil utility class.
+ * 
+ * See: https://github.com/j256/java-two-factor-auth
+ * 
+ * @author graywatson
  */
 public class TwoFactorAuthUtilTest {
 
@@ -38,4 +42,5 @@ public class TwoFactorAuthUtilTest {
 			Thread.sleep(1000);
 		}
 	}
+
 }
