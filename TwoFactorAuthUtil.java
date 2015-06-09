@@ -18,7 +18,9 @@ import javax.crypto.spec.SecretKeySpec;
 public class TwoFactorAuthUtil {
 
 	/** default time-step which is part of the spec, 30 seconds is default */
-	static final int TIME_STEP_SECONDS = 30;
+	public static final int TIME_STEP_SECONDS = 30;
+	/** set to true to use a thread local for the SHA1 instance */
+	private static final boolean USE_SHA1_THREAD_LOCAL = true;
 
 	private final Random random = new Random();
 
@@ -69,7 +71,12 @@ public class TwoFactorAuthUtil {
 
 		// encrypt the data with the key and return the SHA1 of it in hex
 		SecretKeySpec signKey = new SecretKeySpec(key, "HmacSHA1");
-		Mac mac = macThreadLocal.get();
+		Mac mac;
+		if (USE_SHA1_THREAD_LOCAL) {
+			mac = macThreadLocal.get();
+		} else {
+			mac = Mac.getInstance("HmacSHA1");
+		}
 		mac.init(signKey);
 		byte[] hash = mac.doFinal(data);
 
@@ -96,11 +103,12 @@ public class TwoFactorAuthUtil {
 	/**
 	 * Return the QR image url thanks to Google. This can be shown to the user and scanned by the authenticator program
 	 * as an easy way to enter the secret.
+	 * 
+	 * NOTE: this must be URL escaped if it is to be put into a href on a web-page.
 	 */
 	public String qrImageUrl(String keyId, String secret) {
 		StringBuilder sb = new StringBuilder(128);
-		sb.append("https://chart.googleapis.com/chart?"
-				+ "chs=200x200&amp;cht=qr&amp;chl=200x200&amp;chld=M|0&amp;cht=qr&amp;chl=");
+		sb.append("https://chart.googleapis.com/chart?" + "chs=200x200&cht=qr&chl=200x200&chld=M|0&cht=qr&chl=");
 		sb.append("otpauth://totp/").append(keyId).append("%3Fsecret%3D").append(secret);
 		return sb.toString();
 	}
