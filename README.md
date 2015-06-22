@@ -1,4 +1,4 @@
-2 Factor Authentication Java code which used the Time-based One-time Password
+2 Factor Authentication (2FA) Java code which used the Time-based One-time Password
 Algorithm (TOTP) algorithm.  You can use this code with the Google Authenticator
 mobile app or the Authy mobile or browser app.
 
