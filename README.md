@@ -18,3 +18,5 @@ Whenever the user logs in:
 2. Read the secret associated with the user account from the database.
 3. The server compares the user input with the output from `generateCurrentNumber(...)`.
 4. If they are equal then the user is allowed to log in.
+
+Licensed under Apache Software License v2.0.
