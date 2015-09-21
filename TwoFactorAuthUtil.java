@@ -63,7 +63,7 @@ public class TwoFactorAuthUtil {
 	}
 
 	/**
-	 * Return the current number to be checked from user input. This can be compared against user input.
+	 * Return the current number to be checked. This can be compared against user input.
 	 * 
 	 * For more details of this magic algorithm, see:
 	 * http://en.wikipedia.org/wiki/Time-based_One-time_Password_Algorithm
