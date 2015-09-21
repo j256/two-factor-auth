@@ -65,6 +65,8 @@ public class TwoFactorAuthUtil {
 	/**
 	 * Return the current number to be checked. This can be compared against user input.
 	 * 
+	 * WARNING: This requires a system clock that is in sync with the world.
+	 * 
 	 * For more details of this magic algorithm, see:
 	 * http://en.wikipedia.org/wiki/Time-based_One-time_Password_Algorithm
 	 */
