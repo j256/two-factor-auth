@@ -1,0 +1,67 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
+	<!-- ormlite configuration file for Maven (http://maven.apache.org/) -->
+	<modelVersion>4.0.0</modelVersion>
+	<groupId>com.j256.common.utils</groupId>
+	<artifactId>totp</artifactId>
+	<version>0.1-SNAPSHOT</version>
+	<packaging>jar</packaging>
+	<name>TOTP Java</name>
+	<url>https://github.com/j256/java-two-factor-auth</url>
+	<description>Time Based Two Factor Auth</description>
+	<licenses>
+		<license>
+			<name>ISC License</name>
+		</license>
+	</licenses>
+	<scm>
+		<url>https://github.com/j256/java-two-factor-auth</url>
+		<connection>scm:git:ssh://git@github.com/j256/java-two-factor-auth.git</connection>
+		<developerConnection>scm:git:ssh://git@github.com/j256/java-two-factor-auth.git</developerConnection>
+	</scm>
+	<developers>
+		<developer>
+			<id>gray</id>
+			<name>Gray Watson</name>
+			<url>http://256.com/gray/</url>
+			<organization>256.com</organization>
+			<organizationUrl>http://256.com/</organizationUrl>
+			<roles>
+				<role>architect</role>
+				<role>developer</role>
+			</roles>
+			<timezone>-5</timezone>
+		</developer>
+	</developers>
+	<properties>
+		<junit-version>4.8.1</junit-version>
+	</properties>
+	<build>
+		<finalName>totp</finalName>
+		<resources>
+			<resource>
+				<directory>src/main/resources</directory>
+			</resource>
+		</resources>
+		<testResources>
+			<testResource>
+				<directory>src/test/resources</directory>
+			</testResource>
+		</testResources>
+	</build>
+	<dependencies>
+		<dependency>
+			<groupId>junit</groupId>
+			<artifactId>junit</artifactId>
+			<version>${junit-version}</version>
+			<scope>test</scope>
+		</dependency>
+		<dependency>
+			<groupId>commons-codec</groupId>
+			<artifactId>commons-codec</artifactId>
+			<version>1.6</version>
+			<scope>test</scope>
+		</dependency>
+	</dependencies>
+</project>

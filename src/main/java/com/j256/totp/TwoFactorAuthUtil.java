@@ -1,4 +1,4 @@
-package com.j256.common.utils;
+package com.j256.totp;
 
 import java.security.GeneralSecurityException;
 import java.security.NoSuchAlgorithmException;
@@ -14,15 +14,15 @@ import javax.crypto.spec.SecretKeySpec;
  * See: https://github.com/j256/java-two-factor-auth
  * 
  * Copyright 2015, Gray Watson
- *
+ * 
  * Permission to use, copy, modify, and/or distribute this software for any purpose with or without fee is hereby
- * granted provided that the above copyright notice and this permission notice appear in all copies.  THE SOFTWARE
- * IS PROVIDED "AS IS" AND THE AUTHOR DISCLAIMS ALL WARRANTIES WITH REGARD TO THIS SOFTWARE INCLUDING ALL IMPLIED
+ * granted provided that the above copyright notice and this permission notice appear in all copies. THE SOFTWARE IS
+ * PROVIDED "AS IS" AND THE AUTHOR DISCLAIMS ALL WARRANTIES WITH REGARD TO THIS SOFTWARE INCLUDING ALL IMPLIED
  * WARRANTIES OF MERCHANTABILITY AND FITNESS. IN NO EVENT SHALL THE AUTHOR BE LIABLE FOR ANY SPECIAL, DIRECT, INDIRECT,
  * OR CONSEQUENTIAL DAMAGES OR ANY DAMAGES WHATSOEVER RESULTING FROM LOSS OF USE, DATA OR PROFITS, WHETHER IN AN ACTION
- * OF CONTRACT, NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING OUT OF OR IN CONNECTION WITH THE USE OR PERFORMANCE OF
- * THIS SOFTWARE.
- *
+ * OF CONTRACT, NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING OUT OF OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS
+ * SOFTWARE.
+ * 
  * @author graywatson
  */
 public class TwoFactorAuthUtil {
@@ -31,8 +31,20 @@ public class TwoFactorAuthUtil {
 	public static final int TIME_STEP_SECONDS = 30;
 	/** set to true to use a thread local for the SHA1 instance */
 	private static final boolean USE_SHA1_THREAD_LOCAL = true;
+	/** set to the number of digits to control 0 prefix, set to 0 for no prefix */
+	private static int NUM_DIGITS_OUTPUT = 6;
 
 	private final Random random = new Random();
+
+	private final String blockOfZeros;
+
+	{
+		StringBuilder sb = new StringBuilder(NUM_DIGITS_OUTPUT);
+		for (int i = 0; i < NUM_DIGITS_OUTPUT; i++) {
+			sb.append('0');
+		}
+		blockOfZeros = sb.toString();
+	}
 
 	// here to not have to generate a Mac instance each time
 	private final ThreadLocal<Mac> macThreadLocal = new ThreadLocal<Mac>() {
@@ -71,11 +83,19 @@ public class TwoFactorAuthUtil {
 	 * http://en.wikipedia.org/wiki/Time-based_One-time_Password_Algorithm
 	 */
 	public String generateCurrentNumber(String secret) throws GeneralSecurityException {
+		return generateCurrentNumber(secret, System.currentTimeMillis());
+	}
+
+	/**
+	 * Same as {@link #generateCurrentNumber(String)} except at a particular time in millis. Mostly for testing
+	 * purposes.
+	 */
+	public String generateCurrentNumber(String secret, long currentTimeMillis) throws GeneralSecurityException {
 
 		byte[] key = decodeBase32(secret);
 
 		byte[] data = new byte[8];
-		long value = System.currentTimeMillis() / 1000 / TIME_STEP_SECONDS;
+		long value = currentTimeMillis / 1000 / TIME_STEP_SECONDS;
 		for (int i = 7; value > 0; i--) {
 			data[i] = (byte) (value & 0xFF);
 			value >>= 8;
@@ -108,8 +128,7 @@ public class TwoFactorAuthUtil {
 		// the token is then the last 6 digits in the number
 		truncatedHash %= 1000000;
 
-		// make sure it is 0 prefixed
-		return String.format("%06d", truncatedHash);
+		return zeroPrepend(truncatedHash, NUM_DIGITS_OUTPUT);
 	}
 
 	/**
@@ -127,10 +146,26 @@ public class TwoFactorAuthUtil {
 	}
 
 	/**
-	 * Little decode base-32 method. We could use Apache Codec but I didn't want to have the dependency just for this
-	 * decode method.
+	 * Return the string prepended with 0s. Tested as 13x faster than String.format("%06d", ...); Exposed for testing.
 	 */
-	private byte[] decodeBase32(String str) {
+	String zeroPrepend(long num, int digits) {
+		String hashStr = Long.toString(num);
+		if (hashStr.length() >= digits) {
+			return hashStr;
+		} else {
+			StringBuilder sb = new StringBuilder(digits);
+			int zeroCount = digits - hashStr.length();
+			sb.append(blockOfZeros, 0, zeroCount);
+			sb.append(hashStr);
+			return sb.toString();
+		}
+	}
+
+	/**
+	 * Little decode base-32 method. We could use Apache Codec but I didn't want to have the dependency just for this
+	 * decode method. Exposed for testing.
+	 */
+	byte[] decodeBase32(String str) {
 		// each base-32 character encodes 5 bits
 		int numBytes = ((str.length() * 5) + 4) / 8;
 		byte[] result = new byte[numBytes];
@@ -146,6 +181,10 @@ public class TwoFactorAuthUtil {
 				val = ch - 'A';
 			} else if (ch >= '2' && ch <= '7') {
 				val = 26 + (ch - '2');
+			} else if (ch == '=') {
+				// special case
+				which = 0;
+				break;
 			} else {
 				throw new IllegalArgumentException("Invalid base-32 character: " + ch);
 			}
