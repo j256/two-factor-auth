@@ -6,11 +6,10 @@ See: http://en.wikipedia.org/wiki/Time-based_One-time_Password_Algorithm
 
 To get this to work you:
 
- 1. Properly seed the random number generator.
- 2. Use `generateBase32Secret()` to generate a secret key for a user.
- 3. Store the secret key in the database associated with the user account.
- 4. Display the QR image URL returned by `qrImageUrl(...)` to the user.
- 5. User uses the image to load the secret key into his authenticator application.
+ 1. Use `generateBase32Secret()` to generate a secret key for a user.
+ 2. Store the secret key in the database associated with the user account.
+ 3. Display the QR image URL returned by `qrImageUrl(...)` to the user.
+ 4. User uses the image to load the secret key into his authenticator application.
 
 Whenever the user logs in:
 
