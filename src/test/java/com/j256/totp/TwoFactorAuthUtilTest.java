@@ -19,11 +19,6 @@ import org.junit.Test;
 public class TwoFactorAuthUtilTest {
 
 	public static void main(String[] args) throws Exception {
-		new TwoFactorAuthUtilTest().doMain();
-	}
-
-	private void doMain() throws Exception {
-
 		TwoFactorAuthUtil twoFactorAuthUtil = new TwoFactorAuthUtil();
 
 		// String base32Secret = twoFactorAuthUtil.generateBase32Secret();
