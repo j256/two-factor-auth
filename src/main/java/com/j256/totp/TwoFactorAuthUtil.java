@@ -2,6 +2,7 @@ package com.j256.totp;
 
 import java.security.GeneralSecurityException;
 import java.security.NoSuchAlgorithmException;
+import java.security.SecureRandom;
 import java.util.Arrays;
 import java.util.Random;
 
@@ -34,8 +35,6 @@ public class TwoFactorAuthUtil {
 	/** set to the number of digits to control 0 prefix, set to 0 for no prefix */
 	private static int NUM_DIGITS_OUTPUT = 6;
 
-	private final Random random = new Random();
-
 	private final String blockOfZeros;
 
 	{
@@ -50,10 +49,11 @@ public class TwoFactorAuthUtil {
 	private final ThreadLocal<Mac> macThreadLocal = new ThreadLocal<Mac>() {
 		@Override
 		protected Mac initialValue() {
+			String name = "HmacSHA1";
 			try {
-				return Mac.getInstance("HmacSHA1");
+				return Mac.getInstance(name);
 			} catch (NoSuchAlgorithmException e) {
-				throw new RuntimeException(e);
+				throw new RuntimeException("unknown message authentication code instance: " + name, e);
 			}
 		}
 	};
@@ -63,6 +63,7 @@ public class TwoFactorAuthUtil {
 	 */
 	public String generateBase32Secret() {
 		StringBuilder sb = new StringBuilder();
+		Random random = new SecureRandom();
 		for (int i = 0; i < 16; i++) {
 			int val = random.nextInt(32);
 			if (val < 26) {
@@ -146,7 +147,7 @@ public class TwoFactorAuthUtil {
 	}
 
 	/**
-	 * Return the string prepended with 0s. Tested as 13x faster than String.format("%06d", ...); Exposed for testing.
+	 * Return the string prepended with 0s. Tested as 10x faster than String.format("%06d", ...); Exposed for testing.
 	 */
 	String zeroPrepend(long num, int digits) {
 		String hashStr = Long.toString(num);

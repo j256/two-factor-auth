@@ -26,7 +26,7 @@ public class TwoFactorAuthUtilTest {
 
 		TwoFactorAuthUtil twoFactorAuthUtil = new TwoFactorAuthUtil();
 
-		// String base32Secret = generateBase32Secret();
+		// String base32Secret = twoFactorAuthUtil.generateBase32Secret();
 		String base32Secret = "NY4A5CPJZ46LXZCP";
 
 		System.out.println("secret = " + base32Secret);
