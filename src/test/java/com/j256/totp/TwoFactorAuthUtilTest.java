@@ -57,7 +57,7 @@ public class TwoFactorAuthUtilTest {
 			 * NOTE: Did a speed test of these and the zeroPrepend is ~13x faster.
 			 */
 			assertEquals(String.format("%06d", num), tfau.zeroPrepend(num, 6));
-		}
+		}d
 	}
 
 	@Test
