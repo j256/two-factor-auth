@@ -18,4 +18,4 @@ Whenever the user logs in:
  3. The server compares the user input with the output from `generateCurrentNumber(...)`.
  4. If they are equal then the user is allowed to log in.
 
-For more details, see the [reference implementation](src/test/java/com/j256/totp/TwoFactorAuthUtilTest.java).
+For more details, see the [reference implementation](src/test/java/com/j256/totp/TwoFactorAuthExample.java).
