@@ -1,7 +1,6 @@
 package com.j256.totp;
 
 import java.security.GeneralSecurityException;
-import java.security.NoSuchAlgorithmException;
 import java.security.SecureRandom;
 import java.util.Arrays;
 import java.util.Random;
@@ -30,8 +29,6 @@ public class TwoFactorAuthUtil {
 
 	/** default time-step which is part of the spec, 30 seconds is default */
 	public static final int TIME_STEP_SECONDS = 30;
-	/** set to true to use a thread local for the SHA1 instance */
-	private static final boolean USE_SHA1_THREAD_LOCAL = true;
 	/** set to the number of digits to control 0 prefix, set to 0 for no prefix */
 	private static int NUM_DIGITS_OUTPUT = 6;
 
@@ -44,19 +41,6 @@ public class TwoFactorAuthUtil {
 		}
 		blockOfZeros = sb.toString();
 	}
-
-	// here to not have to generate a Mac instance each time
-	private final ThreadLocal<Mac> macThreadLocal = new ThreadLocal<Mac>() {
-		@Override
-		protected Mac initialValue() {
-			String name = "HmacSHA1";
-			try {
-				return Mac.getInstance(name);
-			} catch (NoSuchAlgorithmException e) {
-				throw new RuntimeException("unknown message authentication code instance: " + name, e);
-			}
-		}
-	};
 
 	/**
 	 * Generate a secret key in base32 format (A-Z2-7)
@@ -104,12 +88,8 @@ public class TwoFactorAuthUtil {
 
 		// encrypt the data with the key and return the SHA1 of it in hex
 		SecretKeySpec signKey = new SecretKeySpec(key, "HmacSHA1");
-		Mac mac;
-		if (USE_SHA1_THREAD_LOCAL) {
-			mac = macThreadLocal.get();
-		} else {
-			mac = Mac.getInstance("HmacSHA1");
-		}
+		// if this is expensive, could put in a thread-local
+		Mac mac = Mac.getInstance("HmacSHA1");
 		mac.init(signKey);
 		byte[] hash = mac.doFinal(data);
 
