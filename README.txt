@@ -1,8 +1,8 @@
 2 Factor Authentication (2FA) Java code which used the Time-based One-time Password
 Algorithm (TOTP) algorithm.  You can use this code with the Google Authenticator
-mobile app or the Authy mobile or browser app.
+mobile app or the Authy mobile or browser app.  See:
 
-See: http://en.wikipedia.org/wiki/Time-based_One-time_Password_Algorithm
+	http://en.wikipedia.org/wiki/Time-based_One-time_Password_Algorithm
 
 To get this to work you:
 
@@ -18,4 +18,6 @@ Whenever the user logs in:
  3. The server compares the user input with the output from `generateCurrentNumber(...)`.
  4. If they are equal then the user is allowed to log in.
 
-For more details, see the [example program](src/test/java/com/j256/totp/TwoFactorAuthExample.java).
+For more details, see the example program:
+
+	https://github.com/j256/two-factor-auth/blob/master/src/test/java/com/j256/twofactorauth/TwoFactorAuthExample.java

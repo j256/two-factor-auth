@@ -9,7 +9,26 @@ import javax.crypto.Mac;
 import javax.crypto.spec.SecretKeySpec;
 
 /**
- * Java implementation for the Time-based One-Time Password (TOTP) two factor authentication algorithm.
+ * Java implementation for the Time-based One-Time Password (TOTP) two factor authentication algorithm. To get this to
+ * work you:
+ * 
+ * <ol>
+ * <li>Use generateBase32Secret() to generate a secret key for a user.</li>
+ * <li>Store the secret key in the database associated with the user account.</li>
+ * <li>Display the QR image URL returned by qrImageUrl(...) to the user.</li>
+ * <li>User uses the image to load the secret key into his authenticator application.</li>
+ * </ol>
+ * 
+ * <p>
+ * Whenever the user logs in:
+ * </p>
+ * 
+ * <ol>
+ * <li>The user enters the number from the authenticator application into the login form.</li>
+ * <li>Read the secret associated with the user account from the database.</li>
+ * <li>The server compares the user input with the output from generateCurrentNumber(...).</li>
+ * <li>If they are equal then the user is allowed to log in.</li>
+ * </ol>
  * 
  * <p>
  * See: https://github.com/j256/two-factor-auth
