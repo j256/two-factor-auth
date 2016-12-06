@@ -4,7 +4,7 @@
 	<modelVersion>4.0.0</modelVersion>
 	<groupId>com.j256.two-factor-auth</groupId>
 	<artifactId>two-factor-auth</artifactId>
-	<version>0.2</version>
+	<version>0.3-SNAPSHOT</version>
 	<packaging>jar</packaging>
 	<name>TOTP</name>
 	<url>https://github.com/j256/two-factor-auth</url>
