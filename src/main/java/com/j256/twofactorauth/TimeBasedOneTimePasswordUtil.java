@@ -1,4 +1,4 @@
-package com.j256.totp;
+package com.j256.twofactorauth;
 
 import java.security.GeneralSecurityException;
 import java.security.SecureRandom;
@@ -9,43 +9,36 @@ import javax.crypto.Mac;
 import javax.crypto.spec.SecretKeySpec;
 
 /**
- * Two factor Java implementation for the Time-based One-Time Password (TOTP) algorithm.
+ * Java implementation for the Time-based One-Time Password (TOTP) two factor authentication algorithm.
  * 
- * See: https://github.com/j256/java-two-factor-auth
- * 
- * Copyright 2015, Gray Watson
- * 
- * Permission to use, copy, modify, and/or distribute this software for any purpose with or without fee is hereby
- * granted provided that the above copyright notice and this permission notice appear in all copies. THE SOFTWARE IS
- * PROVIDED "AS IS" AND THE AUTHOR DISCLAIMS ALL WARRANTIES WITH REGARD TO THIS SOFTWARE INCLUDING ALL IMPLIED
- * WARRANTIES OF MERCHANTABILITY AND FITNESS. IN NO EVENT SHALL THE AUTHOR BE LIABLE FOR ANY SPECIAL, DIRECT, INDIRECT,
- * OR CONSEQUENTIAL DAMAGES OR ANY DAMAGES WHATSOEVER RESULTING FROM LOSS OF USE, DATA OR PROFITS, WHETHER IN AN ACTION
- * OF CONTRACT, NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING OUT OF OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS
- * SOFTWARE.
+ * <p>
+ * See: https://github.com/j256/two-factor-auth
+ * </p>
  * 
  * @author graywatson
  */
-public class TwoFactorAuthUtil {
+public class TimeBasedOneTimePasswordUtil {
 
 	/** default time-step which is part of the spec, 30 seconds is default */
-	public static final int TIME_STEP_SECONDS = 30;
+	public static final int DEFAULT_TIME_STEP_SECONDS = 30;
 	/** set to the number of digits to control 0 prefix, set to 0 for no prefix */
 	private static int NUM_DIGITS_OUTPUT = 6;
 
-	private final String blockOfZeros;
+	private static final String blockOfZeros;
 
-	{
-		StringBuilder sb = new StringBuilder(NUM_DIGITS_OUTPUT);
-		for (int i = 0; i < NUM_DIGITS_OUTPUT; i++) {
-			sb.append('0');
+	static {
+		char[] chars = new char[NUM_DIGITS_OUTPUT];
+		for (int i = 0; i < chars.length; i++) {
+			chars[i] = '0';
 		}
-		blockOfZeros = sb.toString();
+		blockOfZeros = new String(chars);
 	}
 
 	/**
-	 * Generate a secret key in base32 format (A-Z2-7)
+	 * Generate and return a secret key in base32 format (A-Z2-7) using {@link SecureRandom}. Could be used to generate
+	 * the QR image to be shared with the user.
 	 */
-	public String generateBase32Secret() {
+	public static String generateBase32Secret() {
 		StringBuilder sb = new StringBuilder();
 		Random random = new SecureRandom();
 		for (int i = 0; i < 16; i++) {
@@ -62,25 +55,39 @@ public class TwoFactorAuthUtil {
 	/**
 	 * Return the current number to be checked. This can be compared against user input.
 	 * 
+	 * <p>
 	 * WARNING: This requires a system clock that is in sync with the world.
+	 * </p>
 	 * 
+	 * <p>
 	 * For more details of this magic algorithm, see:
 	 * http://en.wikipedia.org/wiki/Time-based_One-time_Password_Algorithm
+	 * </p>
+	 * 
+	 * @param secret
+	 *            Secret string that was used to generate the QR code or shared with the user.
 	 */
-	public String generateCurrentNumber(String secret) throws GeneralSecurityException {
-		return generateCurrentNumber(secret, System.currentTimeMillis());
+	public static String generateCurrentNumber(String secret) throws GeneralSecurityException {
+		return generateCurrentNumber(secret, System.currentTimeMillis(), DEFAULT_TIME_STEP_SECONDS);
 	}
 
 	/**
-	 * Same as {@link #generateCurrentNumber(String)} except at a particular time in millis. Mostly for testing
-	 * purposes.
+	 * Same as {@link #generateCurrentNumber(String)} except exposes other parameters.
+	 * 
+	 * @param secret
+	 *            Secret string that was used to generate the QR code or shared with the user.
+	 * @param currentTimeMillis
+	 *            Current time in milliseconds.
+	 * @param timeStepSeconds
+	 *            Time step in seconds. The default value is 30 seconds here. See {@link #DEFAULT_TIME_STEP_SECONDS}.
 	 */
-	public String generateCurrentNumber(String secret, long currentTimeMillis) throws GeneralSecurityException {
+	public static String generateCurrentNumber(String secret, long currentTimeMillis, int timeStepSeconds)
+			throws GeneralSecurityException {
 
 		byte[] key = decodeBase32(secret);
 
 		byte[] data = new byte[8];
-		long value = currentTimeMillis / 1000 / TIME_STEP_SECONDS;
+		long value = currentTimeMillis / 1000 / timeStepSeconds;
 		for (int i = 7; value > 0; i--) {
 			data[i] = (byte) (value & 0xFF);
 			value >>= 8;
@@ -116,9 +123,17 @@ public class TwoFactorAuthUtil {
 	 * Return the QR image url thanks to Google. This can be shown to the user and scanned by the authenticator program
 	 * as an easy way to enter the secret.
 	 * 
-	 * NOTE: this must be URL escaped if it is to be put into a href on a web-page.
+	 * <p>
+	 * NOTE: the returned URL should be escaped if it is to be put into a href on a web-page.
+	 * </p>
+	 * 
+	 * @param keyId
+	 *            Name of the key that you want to show up in the users authentication application. Should already be
+	 *            URL encoded.
+	 * @param secret
+	 *            Secret string that will be used when generating the current number.
 	 */
-	public String qrImageUrl(String keyId, String secret) {
+	public static String qrImageUrl(String keyId, String secret) {
 		StringBuilder sb = new StringBuilder(128);
 		sb.append("https://chart.googleapis.com/chart");
 		sb.append("?chs=200x200&cht=qr&chl=200x200&chld=M|0&cht=qr&chl=");
@@ -129,24 +144,24 @@ public class TwoFactorAuthUtil {
 	/**
 	 * Return the string prepended with 0s. Tested as 10x faster than String.format("%06d", ...); Exposed for testing.
 	 */
-	String zeroPrepend(long num, int digits) {
-		String hashStr = Long.toString(num);
-		if (hashStr.length() >= digits) {
-			return hashStr;
+	static String zeroPrepend(long num, int digits) {
+		String numStr = Long.toString(num);
+		if (numStr.length() >= digits) {
+			return numStr;
 		} else {
 			StringBuilder sb = new StringBuilder(digits);
-			int zeroCount = digits - hashStr.length();
+			int zeroCount = digits - numStr.length();
 			sb.append(blockOfZeros, 0, zeroCount);
-			sb.append(hashStr);
+			sb.append(numStr);
 			return sb.toString();
 		}
 	}
 
 	/**
-	 * Little decode base-32 method. We could use Apache Codec but I didn't want to have the dependency just for this
-	 * decode method. Exposed for testing.
+	 * Decode base-32 method. I didn't want to add a dependency to Apache Codec just for this decode method. Exposed for
+	 * testing.
 	 */
-	byte[] decodeBase32(String str) {
+	static byte[] decodeBase32(String str) {
 		// each base-32 character encodes 5 bits
 		int numBytes = ((str.length() * 5) + 4) / 8;
 		byte[] result = new byte[numBytes];
@@ -173,12 +188,12 @@ public class TwoFactorAuthUtil {
 			 * There are probably better ways to do this but this seemed the most straightforward.
 			 */
 			switch (which) {
-				case 0 :
+				case 0:
 					// all 5 bits is top 5 bits
 					working = (val & 0x1F) << 3;
 					which = 1;
 					break;
-				case 1 :
+				case 1:
 					// top 3 bits is lower 3 bits
 					working |= (val & 0x1C) >> 2;
 					result[resultIndex++] = (byte) working;
@@ -186,12 +201,12 @@ public class TwoFactorAuthUtil {
 					working = (val & 0x03) << 6;
 					which = 2;
 					break;
-				case 2 :
+				case 2:
 					// all 5 bits is mid 5 bits
 					working |= (val & 0x1F) << 1;
 					which = 3;
 					break;
-				case 3 :
+				case 3:
 					// top 1 bit is lowest 1 bit
 					working |= (val & 0x10) >> 4;
 					result[resultIndex++] = (byte) working;
@@ -199,7 +214,7 @@ public class TwoFactorAuthUtil {
 					working = (val & 0x0F) << 4;
 					which = 4;
 					break;
-				case 4 :
+				case 4:
 					// top 4 bits is lowest 4 bits
 					working |= (val & 0x1E) >> 1;
 					result[resultIndex++] = (byte) working;
@@ -207,12 +222,12 @@ public class TwoFactorAuthUtil {
 					working = (val & 0x01) << 7;
 					which = 5;
 					break;
-				case 5 :
+				case 5:
 					// all 5 bits is mid 5 bits
 					working |= (val & 0x1F) << 2;
 					which = 6;
 					break;
-				case 6 :
+				case 6:
 					// top 2 bits is lowest 2 bits
 					working |= (val & 0x18) >> 3;
 					result[resultIndex++] = (byte) working;
@@ -220,7 +235,7 @@ public class TwoFactorAuthUtil {
 					working = (val & 0x07) << 5;
 					which = 7;
 					break;
-				case 7 :
+				case 7:
 					// all 5 bits is lower 5 bits
 					working |= (val & 0x1F);
 					result[resultIndex++] = (byte) working;
