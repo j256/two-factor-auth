@@ -9,7 +9,7 @@
 	<packaging>jar</packaging>
 	<name>TOTP</name>
 	<url>https://github.com/j256/two-factor-auth</url>
-	<description>Time Based Two Factor Auth</description>
+	<description>Two Factor Auth</description>
 	<licenses>
 		<license>
 			<name>ISC License</name>
