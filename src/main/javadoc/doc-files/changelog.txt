@@ -1,4 +1,4 @@
-0.3: 4/7/2017
+1.0: 4/7/2017
 	* Added different sized base-32 secret string generation.  Thanks to WilliamDunne.
 	* Added validation methods with a specified window.  Thanks to WilliamDunne.
 	* Some name refactoring to make more sense.
