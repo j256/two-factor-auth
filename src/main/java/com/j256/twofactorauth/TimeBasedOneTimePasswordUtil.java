@@ -34,6 +34,10 @@ import javax.crypto.spec.SecretKeySpec;
  * See: https://github.com/j256/two-factor-auth
  * </p>
  * 
+ * <p>
+ * For more details of this magic algorithm, see: http://en.wikipedia.org/wiki/Time-based_One-time_Password_Algorithm
+ * </p>
+ * 
  * @author graywatson
  */
 public class TimeBasedOneTimePasswordUtil {
@@ -54,13 +58,20 @@ public class TimeBasedOneTimePasswordUtil {
 	}
 
 	/**
-	 * Generate and return a secret key in base32 format (A-Z2-7) using {@link SecureRandom}. Could be used to generate
-	 * the QR image to be shared with the user.
+	 * Generate and return a 16-character secret key in base32 format (A-Z2-7) using {@link SecureRandom}. Could be used
+	 * to generate the QR image to be shared with the user. Other lengths should use {@link #generateBase32Secret(int)}.
 	 */
 	public static String generateBase32Secret() {
-		StringBuilder sb = new StringBuilder();
+		return generateBase32Secret(16);
+	}
+
+	/**
+	 * Similar to {@link #generateBase32Secret()} but specifies a character length.
+	 */
+	public static String generateBase32Secret(int length) {
+		StringBuilder sb = new StringBuilder(length);
 		Random random = new SecureRandom();
-		for (int i = 0; i < 16; i++) {
+		for (int i = 0; i < length; i++) {
 			int val = random.nextInt(32);
 			if (val < 26) {
 				sb.append((char) ('A' + val));
@@ -72,41 +83,118 @@ public class TimeBasedOneTimePasswordUtil {
 	}
 
 	/**
+	 * Validate a given secret-number using the secret base-32 string. This allows you to set a window in seconds to
+	 * account for people being close to the end of the time-step. For example, if windowSeconds is 10 then this method
+	 * will check the authNumber against the generated number from 10 seconds before now through 10 seconds after now.
+	 * 
+	 * <p>
+	 * WARNING: This requires a system clock that is in sync with the world.
+	 * </p>
+	 * 
+	 * @param base32Secret
+	 *            Secret string encoded using base-32 that was used to generate the QR code or shared with the user.
+	 * @param authNumber
+	 *            Time based number provided by the user from their authenticator application.
+	 * @param windowMillis
+	 *            Number of milliseconds that they are allowed to be off and still match. This checks before and after
+	 *            the current time to account for clock variance. Set to 0 for no window.
+	 * @return True if the authNumber matched the calculated number within the specified window.
+	 */
+	public static boolean validateCurrentNumber(String base32Secret, int authNumber, int windowMillis)
+			throws GeneralSecurityException {
+		return validateCurrentNumber(base32Secret, authNumber, windowMillis, System.currentTimeMillis(),
+				DEFAULT_TIME_STEP_SECONDS);
+	}
+
+	/**
+	 * Similar to {@link #validateCurrentNumber(String, int, int)} except exposes other parameters. Mostly for testing.
+	 * 
+	 * @param base32Secret
+	 *            Secret string encoded using base-32 that was used to generate the QR code or shared with the user.
+	 * @param authNumber
+	 *            Time based number provided by the user from their authenticator application.
+	 * @param windowMillis
+	 *            Number of milliseconds that they are allowed to be off and still match. This checks before and after
+	 *            the current time to account for clock variance. Set to 0 for no window.
+	 * @param timeMillis
+	 *            Time in milliseconds.
+	 * @param timeStepSeconds
+	 *            Time step in seconds. The default value is 30 seconds here. See {@link #DEFAULT_TIME_STEP_SECONDS}.
+	 * @return True if the authNumber matched the calculated number within the specified window.
+	 */
+	public static boolean validateCurrentNumber(String base32Secret, int authNumber, int windowMillis, long timeMillis,
+			int timeStepSeconds) throws GeneralSecurityException {
+		long from = timeMillis;
+		long to = timeMillis;
+		if (windowMillis > 0) {
+			from -= windowMillis;
+			to += windowMillis;
+		}
+		long timeStepMillis = timeStepSeconds * 1000;
+		for (long millis = from; millis <= to; millis += timeStepMillis) {
+			long compare = generateNumber(base32Secret, millis, timeStepSeconds);
+			if (compare == authNumber) {
+				return true;
+			}
+		}
+		return false;
+	}
+
+	/**
 	 * Return the current number to be checked. This can be compared against user input.
 	 * 
 	 * <p>
 	 * WARNING: This requires a system clock that is in sync with the world.
 	 * </p>
 	 * 
-	 * <p>
-	 * For more details of this magic algorithm, see:
-	 * http://en.wikipedia.org/wiki/Time-based_One-time_Password_Algorithm
-	 * </p>
-	 * 
-	 * @param secret
-	 *            Secret string that was used to generate the QR code or shared with the user.
+	 * @param base32Secret
+	 *            Secret string encoded using base-32 that was used to generate the QR code or shared with the user.
+	 * @return A number as a string with possible leading zeros which should match the user's authenticator application
+	 *         output.
 	 */
-	public static String generateCurrentNumber(String secret) throws GeneralSecurityException {
-		return generateCurrentNumber(secret, System.currentTimeMillis(), DEFAULT_TIME_STEP_SECONDS);
+	public static String generateCurrentNumberString(String base32Secret) throws GeneralSecurityException {
+		return generateNumberString(base32Secret, System.currentTimeMillis(), DEFAULT_TIME_STEP_SECONDS);
 	}
 
 	/**
-	 * Same as {@link #generateCurrentNumber(String)} except exposes other parameters.
+	 * Similar to {@link #generateCurrentNumberString(String)} except exposes other parameters. Mostly for testing.
 	 * 
-	 * @param secret
-	 *            Secret string that was used to generate the QR code or shared with the user.
-	 * @param currentTimeMillis
-	 *            Current time in milliseconds.
+	 * @param base32Secret
+	 *            Secret string encoded using base-32 that was used to generate the QR code or shared with the user.
+	 * @param timeMillis
+	 *            Time in milliseconds.
 	 * @param timeStepSeconds
 	 *            Time step in seconds. The default value is 30 seconds here. See {@link #DEFAULT_TIME_STEP_SECONDS}.
+	 * @return A number as a string with possible leading zeros which should match the user's authenticator application
+	 *         output.
 	 */
-	public static String generateCurrentNumber(String secret, long currentTimeMillis, int timeStepSeconds)
+	public static String generateNumberString(String base32Secret, long timeMillis, int timeStepSeconds)
+			throws GeneralSecurityException {
+		long number = generateNumber(base32Secret, timeMillis, timeStepSeconds);
+		return zeroPrepend(number, NUM_DIGITS_OUTPUT);
+	}
+
+	/**
+	 * Similar to {@link #generateCurrentNumberString(String)} but this returns a long instead of a string.
+	 * 
+	 * @return A number which should match the user's authenticator application output.
+	 */
+	public static long generateCurrentNumber(String base32Secret) throws GeneralSecurityException {
+		return generateNumber(base32Secret, System.currentTimeMillis(), DEFAULT_TIME_STEP_SECONDS);
+	}
+
+	/**
+	 * Similar to {@link #generateNumberString(String, long, int)} but this returns a long instead of a string.
+	 * 
+	 * @return A number which should match the user's authenticator application output.
+	 */
+	public static long generateNumber(String base32Secret, long timeMillis, int timeStepSeconds)
 			throws GeneralSecurityException {
 
-		byte[] key = decodeBase32(secret);
+		byte[] key = decodeBase32(base32Secret);
 
 		byte[] data = new byte[8];
-		long value = currentTimeMillis / 1000 / timeStepSeconds;
+		long value = timeMillis / 1000 / timeStepSeconds;
 		for (int i = 7; value > 0; i--) {
 			data[i] = (byte) (value & 0xFF);
 			value >>= 8;
@@ -135,7 +223,7 @@ public class TimeBasedOneTimePasswordUtil {
 		// the token is then the last 6 digits in the number
 		truncatedHash %= 1000000;
 
-		return zeroPrepend(truncatedHash, NUM_DIGITS_OUTPUT);
+		return truncatedHash;
 	}
 
 	/**

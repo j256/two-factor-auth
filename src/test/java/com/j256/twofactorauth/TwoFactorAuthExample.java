@@ -23,7 +23,7 @@ public class TwoFactorAuthExample {
 		// we can display this image to the user to let them load it into their auth program
 
 		// we can use the code here and compare it against user input
-		String code = TimeBasedOneTimePasswordUtil.generateCurrentNumber(base32Secret);
+		String code = TimeBasedOneTimePasswordUtil.generateCurrentNumberString(base32Secret);
 
 		/*
 		 * this loop shows how the number changes over time
@@ -31,7 +31,7 @@ public class TwoFactorAuthExample {
 		while (true) {
 			long diff = TimeBasedOneTimePasswordUtil.DEFAULT_TIME_STEP_SECONDS
 					- ((System.currentTimeMillis() / 1000) % TimeBasedOneTimePasswordUtil.DEFAULT_TIME_STEP_SECONDS);
-			code = TimeBasedOneTimePasswordUtil.generateCurrentNumber(base32Secret);
+			code = TimeBasedOneTimePasswordUtil.generateCurrentNumberString(base32Secret);
 			System.out.println("Secret code = " + code + ", change in " + diff + " seconds");
 			Thread.sleep(1000);
 		}
