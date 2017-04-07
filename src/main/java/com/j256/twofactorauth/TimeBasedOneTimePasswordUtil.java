@@ -182,7 +182,7 @@ public class TimeBasedOneTimePasswordUtil {
 	 */
 	static byte[] decodeBase32(String str) {
 		// each base-32 character encodes 5 bits
-		int numBytes = ((str.length() * 5) + 4) / 8;
+		int numBytes = ((str.length() * 5) + 7) / 8;
 		byte[] result = new byte[numBytes];
 		int resultIndex = 0;
 		int which = 0;

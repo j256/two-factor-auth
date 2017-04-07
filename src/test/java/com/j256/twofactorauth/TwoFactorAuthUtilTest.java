@@ -39,6 +39,20 @@ public class TwoFactorAuthUtilTest {
 	}
 
 	@Test
+	public void testBadBase32() {
+		String[] strings =
+				new String[] { "A", "AB", "ABC", "ABCD", "ABCDE", "ABCDEF", "ABCDEFG", "ABCDEFGH", "ABCDEFGHI" };
+		Base32 base32 = new Base32();
+		for (String str : strings) {
+			byte[] decoded = TimeBasedOneTimePasswordUtil.decodeBase32(str);
+			String encoded = base32.encodeAsString(decoded);
+			byte[] result = TimeBasedOneTimePasswordUtil.decodeBase32(encoded);
+			System.out.println(str + " becomes " + encoded);
+			assertArrayEquals(decoded, result);
+		}
+	}
+
+	@Test
 	public void testVariusKnownSecretTimeCodes() throws GeneralSecurityException {
 		String secret = "NY4A5CPJZ46LXZCP";
 		assertEquals("748810", TimeBasedOneTimePasswordUtil.generateCurrentNumber(secret, 1000L,
