@@ -6,7 +6,7 @@
 	<artifactId>two-factor-auth</artifactId>
 	<version>1.1-SNAPSHOT</version>
 	<packaging>jar</packaging>
-	<name>TOTP</name>
+	<name>Two Factor Auth</name>
 	<url>https://github.com/j256/two-factor-auth</url>
 	<description>Two Factor Auth</description>
 	<licenses>
@@ -137,7 +137,7 @@
 					</execution>
 				</executions>
 				<configuration>
-					<!-- j256 Releases (Code releases for j256.com) <j256@256.com> -->
+					<!-- j256 Releases (Code releases for j256.com) <j256@256stuff.com> -->
 					<keyname>D3412AC1</keyname>
 				</configuration>
 			</plugin>
