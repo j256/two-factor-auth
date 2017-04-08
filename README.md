@@ -10,9 +10,9 @@ You can use this code with the Google Authenticator mobile app or the Authy mobi
 
 ## To get this to work you:
 
-1. Use `generateBase32Secret()` to generate a secret key for a user.  For example: `"NY4A5CPJZ46LXZCP"`
+1. Use `generateBase32Secret()` to generate a secret key in base-32 format for the user.  For example: `"NY4A5CPJZ46LXZCP"`
 2. Store the secret key in the database associated with the user account.
-3. Display the QR image URL returned by `qrImageUrl(...)` to the user.  Here's a sample from GoogleAPIs:  
+3. Display the QR image URL returned by `qrImageUrl(...)` to the user.  Here's a sample which uses GoogleAPIs:  
 ![Sample QR Image](https://chart.googleapis.com/chart?chs=200x200&cht=qr&chl=200x200&chld=M|0&cht=qr&chl=otpauth://totp/user@j256.com%3Fsecret%3DNY4A5CPJZ46LXZCP)
 4. User uses the image to load the secret key into his authenticator application.
 
