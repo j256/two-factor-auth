@@ -230,10 +230,6 @@ public class TimeBasedOneTimePasswordUtil {
 	 * Return the QR image url thanks to Google. This can be shown to the user and scanned by the authenticator program
 	 * as an easy way to enter the secret.
 	 * 
-	 * <p>
-	 * NOTE: the returned URL should be escaped if it is to be put into a href on a web-page.
-	 * </p>
-	 * 
 	 * @param keyId
 	 *            Name of the key that you want to show up in the users authentication application. Should already be
 	 *            URL encoded.
@@ -242,10 +238,29 @@ public class TimeBasedOneTimePasswordUtil {
 	 */
 	public static String qrImageUrl(String keyId, String secret) {
 		StringBuilder sb = new StringBuilder(128);
-		sb.append("https://chart.googleapis.com/chart");
-		sb.append("?chs=200x200&cht=qr&chl=200x200&chld=M|0&cht=qr&chl=");
-		sb.append("otpauth://totp/").append(keyId).append("%3Fsecret%3D").append(secret);
+		sb.append("https://chart.googleapis.com/chart?chs=200x200&cht=qr&chl=200x200&chld=M|0&cht=qr&chl=");
+		addOtpAuthPart(keyId, secret, sb);
 		return sb.toString();
+	}
+
+	/**
+	 * Return the otp-auth part of the QR image which is suitable to be injected into other QR generators (e.g. JS
+	 * generator).
+	 *
+	 * @param keyId
+	 *            Name of the key that you want to show up in the users authentication application. Should already be
+	 *            URL encoded.
+	 * @param secret
+	 *            Secret string that will be used when generating the current number.
+	 */
+	public static String generateOtpAuthUrl(String keyId, String secret) {
+		StringBuilder sb = new StringBuilder(64);
+		addOtpAuthPart(keyId, secret, sb);
+		return sb.toString();
+	}
+
+	private static void addOtpAuthPart(String keyId, String secret, StringBuilder sb) {
+		sb.append("otpauth://totp/").append(keyId).append("%3Fsecret%3D").append(secret);
 	}
 
 	/**

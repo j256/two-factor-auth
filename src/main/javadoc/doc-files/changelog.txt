@@ -1,3 +1,6 @@
+1.1: 4/13/2017
+	* Split out the opt-auth URL generation.  Thanks to jball.
+
 1.0: 4/7/2017
 	* Added different sized base-32 secret string generation.  Thanks to WilliamDunne.
 	* Added validation methods with a specified window.  Thanks to WilliamDunne.
