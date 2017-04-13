@@ -35,7 +35,7 @@ import javax.crypto.spec.SecretKeySpec;
  * </p>
  * 
  * <p>
- * For more details of this magic algorithm, see: http://en.wikipedia.org/wiki/Time-based_One-time_Password_Algorithm
+ * For more details about this magic algorithm, see: http://en.wikipedia.org/wiki/Time-based_One-time_Password_Algorithm
  * </p>
  * 
  * @author graywatson
@@ -83,8 +83,8 @@ public class TimeBasedOneTimePasswordUtil {
 	}
 
 	/**
-	 * Validate a given secret-number using the secret base-32 string. This allows you to set a window in seconds to
-	 * account for people being close to the end of the time-step. For example, if windowSeconds is 10 then this method
+	 * Validate a given secret-number using the secret base-32 string. This allows you to set a window in milliseconds to
+	 * account for people being close to the end of the time-step. For example, if windowMillis is 10000 then this method
 	 * will check the authNumber against the generated number from 10 seconds before now through 10 seconds after now.
 	 * 
 	 * <p>
