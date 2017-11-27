@@ -19,6 +19,10 @@
 		<artifactId>oss-parent</artifactId>
 		<version>5</version>
 	</parent>
+	<properties>
+		<disableDoclint></disableDoclint>
+		<junit-version>4.8.1</junit-version>
+	</properties>
 	<scm>
 		<url>https://github.com/j256/two-factor-auth</url>
 		<connection>scm:git:ssh://git@github.com/j256/two-factor-auth.git</connection>
@@ -40,6 +44,15 @@
 	</developers>
 	<profiles>
 		<profile>
+			<id>disable-java8-doclint</id>
+			<activation>
+				<jdk>[1.8,)</jdk>
+			</activation>
+			<properties>
+				<disableDoclint>-Xdoclint:none</disableDoclint>
+			</properties>
+		</profile>
+		<profile>
 			<id>st</id>
 			<distributionManagement>
 				<repository>
@@ -55,9 +68,6 @@
 			</distributionManagement>
 		</profile>
 	</profiles>
-	<properties>
-		<junit-version>4.8.1</junit-version>
-	</properties>
 	<build>
 		<finalName>two-factor-auth</finalName>
 		<plugins>
@@ -102,7 +112,7 @@
 						</goals>
 						<configuration>
 							<showPackage>false</showPackage>
-							<additionalparam>-tag inheritDoc:X</additionalparam>
+							<additionalparam>-tag inheritDoc:X ${disableDoclint}</additionalparam>
 						</configuration>
 					</execution>
 				</executions>
@@ -113,7 +123,7 @@
 						&lt;a
 						href="http://creativecommons.org/licenses/by-sa/3.0/" &gt;Creative Commons Attribution-Share Alike 3.0 License.
 						&lt;/a&gt; </bottom>
-					<additionalparam>-tag inheritDoc:X</additionalparam>
+					<additionalparam>-tag inheritDoc:X ${disableDoclint}</additionalparam>
 					<excludePackageNames>
 					</excludePackageNames>
 				</configuration>
