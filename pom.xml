@@ -8,7 +8,7 @@
 	<packaging>jar</packaging>
 	<name>Two Factor Auth</name>
 	<url>https://github.com/j256/two-factor-auth</url>
-	<description>Two Factor Auth</description>
+	<description>Two Factor Authentication (Auth) implementation for Java which uses the Time-based One-time Password (TOTP) algorithm.</description>
 	<licenses>
 		<license>
 			<name>ISC License</name>
