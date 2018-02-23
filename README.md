@@ -6,7 +6,7 @@ You can use this code with the Google Authenticator mobile app or the Authy mobi
 
 * See the [wikipedia page about TOTP](http://en.wikipedia.org/wiki/Time-based_One-time_Password_Algorithm).	
 * Browse the code on the [git repository](https://github.com/j256/two-factor-auth).  [![CircleCI](https://circleci.com/gh/j256/two-factor-auth.svg?style=svg)](https://circleci.com/gh/j256/two-factor-auth)
-* Maven packages are published via the [maven central repo](http://repo1.maven.org/maven2/com/j256/two-factor-auth/two-factor-auth/).	
+* Maven packages are published via [![Maven Central](https://maven-badges.herokuapp.com/maven-central/com.j256.cloudwatchlogbackappender/cloudwatchlogbackappender/badge.svg?style=flat-square)](https://maven-badges.herokuapp.com/maven-central/com.j256.two-factor-auth/two-factor-auth/)
 
 ## To get this to work you:
 
@@ -24,3 +24,7 @@ You can use this code with the Google Authenticator mobile app or the Authy mobi
 4. If they are equal then the user is allowed to log in.
 
 For more details, see the [example program](https://github.com/j256/two-factor-auth/blob/master/src/test/java/com/j256/twofactorauth/TwoFactorAuthExample.java).
+
+# ChangeLog Release Notes
+
+See the [ChangeLog.txt file](src/main/javadoc/doc-files/changelog.txt).
