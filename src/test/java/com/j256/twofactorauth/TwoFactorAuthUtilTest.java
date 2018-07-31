@@ -1,14 +1,12 @@
 package com.j256.twofactorauth;
 
+import java.security.GeneralSecurityException;
+import java.util.Random;
+import org.apache.commons.codec.binary.Base32;
 import static org.junit.Assert.assertArrayEquals;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
-
-import java.security.GeneralSecurityException;
-import java.util.Random;
-
-import org.apache.commons.codec.binary.Base32;
 import org.junit.Test;
 
 public class TwoFactorAuthUtilTest {
@@ -65,14 +63,28 @@ public class TwoFactorAuthUtilTest {
 		testStringAndNumber(secret, 1359002349304873750L, 92, "000092");
 		testStringAndNumber(secret, 6344447817348357059L, 7, "000007");
 		testStringAndNumber(secret, 2125701285964551130L, 0, "000000");
+
+		testStringAndNumber(secret, 1000L, 34748810, "34748810", 8);
+		testStringAndNumber(secret, 7451000L, 89325893, "89325893", 8);
+		testStringAndNumber(secret, 15451000L, 67064088, "67064088", 8);
+		testStringAndNumber(secret, 348402049542546145L, 26009637, "26009637", 8);
+		testStringAndNumber(secret, 2049455124374752571L, 94000743, "94000743", 8);
+		testStringAndNumber(secret, 1359002349304873750L, 86000092, "86000092", 8);
+		testStringAndNumber(secret, 6344447817348357059L, 80000007, "80000007", 8);
+		testStringAndNumber(secret, 2125701285964551130L, 24000000, "24000000", 8);
 	}
 
 	private void testStringAndNumber(String secret, long timeMillis, long expectedNumber, String expectedString)
 			throws GeneralSecurityException {
+		testStringAndNumber(secret, timeMillis, expectedNumber, expectedString, TimeBasedOneTimePasswordUtil.DEFAULT_OTP_LENGTH);
+	}
+
+	private void testStringAndNumber(String secret, long timeMillis, long expectedNumber, String expectedString, Integer length)
+			throws GeneralSecurityException {
 		assertEquals(expectedString, TimeBasedOneTimePasswordUtil.generateNumberString(secret, timeMillis,
-				TimeBasedOneTimePasswordUtil.DEFAULT_TIME_STEP_SECONDS));
+				TimeBasedOneTimePasswordUtil.DEFAULT_TIME_STEP_SECONDS, length));
 		assertEquals(expectedNumber, TimeBasedOneTimePasswordUtil.generateNumber(secret, timeMillis,
-				TimeBasedOneTimePasswordUtil.DEFAULT_TIME_STEP_SECONDS));
+				TimeBasedOneTimePasswordUtil.DEFAULT_TIME_STEP_SECONDS, length));
 	}
 
 	@Test
