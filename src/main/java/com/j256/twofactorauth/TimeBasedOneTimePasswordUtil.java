@@ -83,9 +83,10 @@ public class TimeBasedOneTimePasswordUtil {
 	}
 
 	/**
-	 * Validate a given secret-number using the secret base-32 string. This allows you to set a window in milliseconds to
-	 * account for people being close to the end of the time-step. For example, if windowMillis is 10000 then this method
-	 * will check the authNumber against the generated number from 10 seconds before now through 10 seconds after now.
+	 * Validate a given secret-number using the secret base-32 string. This allows you to set a window in milliseconds
+	 * to account for people being close to the end of the time-step. For example, if windowMillis is 10000 then this
+	 * method will check the authNumber against the generated number from 10 seconds before now through 10 seconds after
+	 * now.
 	 * 
 	 * <p>
 	 * WARNING: This requires a system clock that is in sync with the world.
@@ -124,16 +125,16 @@ public class TimeBasedOneTimePasswordUtil {
 	 */
 	public static boolean validateCurrentNumber(String base32Secret, int authNumber, int windowMillis, long timeMillis,
 			int timeStepSeconds) throws GeneralSecurityException {
-		long from = timeMillis;
-		long to = timeMillis;
+		long fromTimeMillis = timeMillis;
+		long toTimeMillis = timeMillis;
 		if (windowMillis > 0) {
-			from -= windowMillis;
-			to += windowMillis;
+			fromTimeMillis -= windowMillis;
+			toTimeMillis += windowMillis;
 		}
 		long timeStepMillis = timeStepSeconds * 1000;
-		for (long millis = from; millis <= to; millis += timeStepMillis) {
-			long compare = generateNumber(base32Secret, millis, timeStepSeconds);
-			if (compare == authNumber) {
+		for (long millis = fromTimeMillis; millis <= toTimeMillis; millis += timeStepMillis) {
+			int generatedNumber = generateNumber(base32Secret, millis, timeStepSeconds);
+			if (generatedNumber == authNumber) {
 				return true;
 			}
 		}
@@ -170,25 +171,25 @@ public class TimeBasedOneTimePasswordUtil {
 	 */
 	public static String generateNumberString(String base32Secret, long timeMillis, int timeStepSeconds)
 			throws GeneralSecurityException {
-		long number = generateNumber(base32Secret, timeMillis, timeStepSeconds);
+		int number = generateNumber(base32Secret, timeMillis, timeStepSeconds);
 		return zeroPrepend(number, NUM_DIGITS_OUTPUT);
 	}
 
 	/**
-	 * Similar to {@link #generateCurrentNumberString(String)} but this returns a long instead of a string.
+	 * Similar to {@link #generateCurrentNumberString(String)} but this returns a int instead of a string.
 	 * 
 	 * @return A number which should match the user's authenticator application output.
 	 */
-	public static long generateCurrentNumber(String base32Secret) throws GeneralSecurityException {
+	public static int generateCurrentNumber(String base32Secret) throws GeneralSecurityException {
 		return generateNumber(base32Secret, System.currentTimeMillis(), DEFAULT_TIME_STEP_SECONDS);
 	}
 
 	/**
-	 * Similar to {@link #generateNumberString(String, long, int)} but this returns a long instead of a string.
+	 * Similar to {@link #generateNumberString(String, long, int)} but this returns a int instead of a string.
 	 * 
 	 * @return A number which should match the user's authenticator application output.
 	 */
-	public static long generateNumber(String base32Secret, long timeMillis, int timeStepSeconds)
+	public static int generateNumber(String base32Secret, long timeMillis, int timeStepSeconds)
 			throws GeneralSecurityException {
 
 		byte[] key = decodeBase32(base32Secret);
@@ -222,8 +223,8 @@ public class TimeBasedOneTimePasswordUtil {
 
 		// the token is then the last 6 digits in the number
 		truncatedHash %= 1000000;
-
-		return truncatedHash;
+		// this is only 6 digits so we can safely case it
+		return (int) truncatedHash;
 	}
 
 	/**
@@ -266,8 +267,8 @@ public class TimeBasedOneTimePasswordUtil {
 	/**
 	 * Return the string prepended with 0s. Tested as 10x faster than String.format("%06d", ...); Exposed for testing.
 	 */
-	static String zeroPrepend(long num, int digits) {
-		String numStr = Long.toString(num);
+	static String zeroPrepend(int num, int digits) {
+		String numStr = Integer.toString(num);
 		if (numStr.length() >= digits) {
 			return numStr;
 		} else {
