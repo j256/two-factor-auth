@@ -23,7 +23,7 @@
 	</parent>
 	<properties>
 		<disableDoclint></disableDoclint>
-		<junit-version>4.8.1</junit-version>
+		<junit-version>4.13.1</junit-version>
 	</properties>
 	<scm>
 		<url>https://github.com/j256/two-factor-auth</url>
