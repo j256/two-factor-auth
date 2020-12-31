@@ -134,7 +134,7 @@ public class TimeBasedOneTimePasswordUtil {
 		}
 		long timeStepMillis = timeStepSeconds * 1000;
 		for (long millis = fromTimeMillis; millis <= toTimeMillis; millis += timeStepMillis) {
-			int generatedNumber = generateNumber(base32Secret, millis, timeStepSeconds);
+			int generatedNumber = generateNumber(base32Secret, millis, timeStepSeconds, DEFAULT_OTP_LENGTH);
 			if (generatedNumber == authNumber) {
 				return true;
 			}
