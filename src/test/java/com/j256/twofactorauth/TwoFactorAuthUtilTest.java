@@ -57,6 +57,7 @@ public class TwoFactorAuthUtilTest {
 	@Test
 	public void testVariusKnownSecretTimeCodes() throws GeneralSecurityException {
 		String secret = "NY4A5CPJZ46LXZCP";
+
 		testStringAndNumber(secret, 1000L, 748810, "748810");
 		testStringAndNumber(secret, 7451000L, 325893, "325893");
 		testStringAndNumber(secret, 15451000L, 64088, "064088");
@@ -65,14 +66,41 @@ public class TwoFactorAuthUtilTest {
 		testStringAndNumber(secret, 1359002349304873750L, 92, "000092");
 		testStringAndNumber(secret, 6344447817348357059L, 7, "000007");
 		testStringAndNumber(secret, 2125701285964551130L, 0, "000000");
+
+		testStringAndNumber(secret, 7451000L, 3, "3", 1);
+		testStringAndNumber(secret, 7451000L, 93, "93", 2);
+		testStringAndNumber(secret, 7451000L, 893, "893", 3);
+		testStringAndNumber(secret, 7451000L, 5893, "5893", 4);
+		testStringAndNumber(secret, 7451000L, 25893, "25893", 5);
+		testStringAndNumber(secret, 7451000L, 325893, "325893", 6);
+		testStringAndNumber(secret, 7451000L, 9325893, "9325893", 7);
+		testStringAndNumber(secret, 7451000L, 89325893, "89325893", 8);
+
+		testStringAndNumber(secret, 1000L, 34748810, "34748810", 8);
+		testStringAndNumber(secret, 7451000L, 89325893, "89325893", 8);
+		testStringAndNumber(secret, 15451000L, 67064088, "67064088", 8);
+		testStringAndNumber(secret, 5964551130L, 5993908, "05993908", 8);
+		testStringAndNumber(secret, 348402049542546145L, 26009637, "26009637", 8);
+		testStringAndNumber(secret, 2049455124374752571L, 94000743, "94000743", 8);
+		testStringAndNumber(secret, 1359002349304873750L, 86000092, "86000092", 8);
+		testStringAndNumber(secret, 6344447817348357059L, 80000007, "80000007", 8);
+		testStringAndNumber(secret, 2125701285964551130L, 24000000, "24000000", 8);
 	}
 
 	private void testStringAndNumber(String secret, long timeMillis, long expectedNumber, String expectedString)
 			throws GeneralSecurityException {
-		assertEquals(expectedString, TimeBasedOneTimePasswordUtil.generateNumberString(secret, timeMillis,
-				TimeBasedOneTimePasswordUtil.DEFAULT_TIME_STEP_SECONDS));
-		assertEquals(expectedNumber, TimeBasedOneTimePasswordUtil.generateNumber(secret, timeMillis,
-				TimeBasedOneTimePasswordUtil.DEFAULT_TIME_STEP_SECONDS));
+		testStringAndNumber(secret, timeMillis, expectedNumber, expectedString,
+				TimeBasedOneTimePasswordUtil.DEFAULT_OTP_LENGTH);
+	}
+
+	private void testStringAndNumber(String secret, long timeMillis, long expectedNumber, String expectedString,
+			int length) throws GeneralSecurityException {
+		String str = TimeBasedOneTimePasswordUtil.generateNumberString(secret, timeMillis,
+				TimeBasedOneTimePasswordUtil.DEFAULT_TIME_STEP_SECONDS, length);
+		assertEquals(length, str.length());
+		assertEquals(expectedString, str);
+		assertEquals("expected numbers to match", expectedNumber, TimeBasedOneTimePasswordUtil.generateNumber(secret,
+				timeMillis, TimeBasedOneTimePasswordUtil.DEFAULT_TIME_STEP_SECONDS, length));
 	}
 
 	@Test

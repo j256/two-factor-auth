@@ -4,13 +4,11 @@ import java.security.GeneralSecurityException;
 import java.security.SecureRandom;
 import java.util.Arrays;
 import java.util.Random;
-
 import javax.crypto.Mac;
 import javax.crypto.spec.SecretKeySpec;
 
 /**
- * Java implementation for the Time-based One-Time Password (TOTP) two factor authentication algorithm. To get this to
- * work you:
+ * Implementation of the Time-based One-Time Password (TOTP) two factor authentication algorithm. You need to:
  * 
  * <ol>
  * <li>Use generateBase32Secret() to generate a secret key for a user.</li>
@@ -44,16 +42,16 @@ public class TimeBasedOneTimePasswordUtil {
 
 	/** default time-step which is part of the spec, 30 seconds is default */
 	public static final int DEFAULT_TIME_STEP_SECONDS = 30;
+	/** default number of digits in a OTP string */
+	public static int DEFAULT_OTP_LENGTH = 6;
 	/** set to the number of digits to control 0 prefix, set to 0 for no prefix */
-	private static int NUM_DIGITS_OUTPUT = 6;
+	private static int MAX_NUM_DIGITS_OUTPUT = 100;
 
 	private static final String blockOfZeros;
 
 	static {
-		char[] chars = new char[NUM_DIGITS_OUTPUT];
-		for (int i = 0; i < chars.length; i++) {
-			chars[i] = '0';
-		}
+		char[] chars = new char[MAX_NUM_DIGITS_OUTPUT];
+		Arrays.fill(chars, '0');
 		blockOfZeros = new String(chars);
 	}
 
@@ -154,7 +152,26 @@ public class TimeBasedOneTimePasswordUtil {
 	 *         output.
 	 */
 	public static String generateCurrentNumberString(String base32Secret) throws GeneralSecurityException {
-		return generateNumberString(base32Secret, System.currentTimeMillis(), DEFAULT_TIME_STEP_SECONDS);
+		return generateNumberString(base32Secret, System.currentTimeMillis(), DEFAULT_TIME_STEP_SECONDS,
+				DEFAULT_OTP_LENGTH);
+	}
+
+	/**
+	 * Return the current number to be checked. This can be compared against user input.
+	 *
+	 * <p>
+	 * WARNING: This requires a system clock that is in sync with the world.
+	 * </p>
+	 *
+	 * @param base32Secret
+	 *            Secret string encoded using base-32 that was used to generate the QR code or shared with the user.
+	 * @param length
+	 *            The length (number of digits) of the OTP.
+	 * @return A number as a string with possible leading zeros which should match the user's authenticator application
+	 *         output.
+	 */
+	public static String generateCurrentNumberString(String base32Secret, int length) throws GeneralSecurityException {
+		return generateNumberString(base32Secret, System.currentTimeMillis(), DEFAULT_TIME_STEP_SECONDS, length);
 	}
 
 	/**
@@ -166,13 +183,15 @@ public class TimeBasedOneTimePasswordUtil {
 	 *            Time in milliseconds.
 	 * @param timeStepSeconds
 	 *            Time step in seconds. The default value is 30 seconds here. See {@link #DEFAULT_TIME_STEP_SECONDS}.
+	 * @param length
+	 *            The length (number of digits) of the OTP.
 	 * @return A number as a string with possible leading zeros which should match the user's authenticator application
 	 *         output.
 	 */
-	public static String generateNumberString(String base32Secret, long timeMillis, int timeStepSeconds)
+	public static String generateNumberString(String base32Secret, long timeMillis, int timeStepSeconds, int length)
 			throws GeneralSecurityException {
-		int number = generateNumber(base32Secret, timeMillis, timeStepSeconds);
-		return zeroPrepend(number, NUM_DIGITS_OUTPUT);
+		int number = generateNumber(base32Secret, timeMillis, timeStepSeconds, length);
+		return zeroPrepend(number, length);
 	}
 
 	/**
@@ -181,7 +200,16 @@ public class TimeBasedOneTimePasswordUtil {
 	 * @return A number which should match the user's authenticator application output.
 	 */
 	public static int generateCurrentNumber(String base32Secret) throws GeneralSecurityException {
-		return generateNumber(base32Secret, System.currentTimeMillis(), DEFAULT_TIME_STEP_SECONDS);
+		return generateNumber(base32Secret, System.currentTimeMillis(), DEFAULT_TIME_STEP_SECONDS, DEFAULT_OTP_LENGTH);
+	}
+
+	/**
+	 * Similar to {@link #generateCurrentNumberString(String, int)} but this returns a int instead of a string.
+	 *
+	 * @return A number which should match the user's authenticator application output.
+	 */
+	public static int generateCurrentNumber(String base32Secret, int length) throws GeneralSecurityException {
+		return generateNumber(base32Secret, System.currentTimeMillis(), DEFAULT_TIME_STEP_SECONDS, length);
 	}
 
 	/**
@@ -190,6 +218,16 @@ public class TimeBasedOneTimePasswordUtil {
 	 * @return A number which should match the user's authenticator application output.
 	 */
 	public static int generateNumber(String base32Secret, long timeMillis, int timeStepSeconds)
+			throws GeneralSecurityException {
+		return generateNumber(base32Secret, timeMillis, timeStepSeconds, DEFAULT_OTP_LENGTH);
+	}
+
+	/**
+	 * Similar to {@link #generateNumberString(String, long, int)} but this returns a int instead of a string.
+	 *
+	 * @return A number which should match the user's authenticator application output.
+	 */
+	public static int generateNumber(String base32Secret, long timeMillis, int timeStepSeconds, int length)
 			throws GeneralSecurityException {
 
 		byte[] key = decodeBase32(base32Secret);
@@ -221,9 +259,12 @@ public class TimeBasedOneTimePasswordUtil {
 		// cut off the top bit
 		truncatedHash &= 0x7FFFFFFF;
 
-		// the token is then the last 6 digits in the number
-		truncatedHash %= 1000000;
-		// this is only 6 digits so we can safely case it
+		// the token is then the last <length> digits in the number
+		long mask = 1;
+		for (int i = 0; i < length; i++) {
+			mask *= 10;
+		}
+		truncatedHash %= mask;
 		return (int) truncatedHash;
 	}
 
@@ -238,9 +279,25 @@ public class TimeBasedOneTimePasswordUtil {
 	 *            Secret string that will be used when generating the current number.
 	 */
 	public static String qrImageUrl(String keyId, String secret) {
+		return qrImageUrl(keyId, secret, DEFAULT_OTP_LENGTH);
+	}
+
+	/**
+	 * Return the QR image url thanks to Google. This can be shown to the user and scanned by the authenticator program
+	 * as an easy way to enter the secret.
+	 *
+	 * @param keyId
+	 *            Name of the key that you want to show up in the users authentication application. Should already be
+	 *            URL encoded.
+	 * @param secret
+	 *            Secret string that will be used when generating the current number.
+	 * @param length
+	 *            The length (number of digits) of the OTP.
+	 */
+	public static String qrImageUrl(String keyId, String secret, int length) {
 		StringBuilder sb = new StringBuilder(128);
 		sb.append("https://chart.googleapis.com/chart?chs=200x200&cht=qr&chl=200x200&chld=M|0&cht=qr&chl=");
-		addOtpAuthPart(keyId, secret, sb);
+		addOtpAuthPart(keyId, secret, sb, length);
 		return sb.toString();
 	}
 
@@ -255,13 +312,34 @@ public class TimeBasedOneTimePasswordUtil {
 	 *            Secret string that will be used when generating the current number.
 	 */
 	public static String generateOtpAuthUrl(String keyId, String secret) {
-		StringBuilder sb = new StringBuilder(64);
-		addOtpAuthPart(keyId, secret, sb);
+		return generateOtpAuthUrl(keyId, secret, DEFAULT_OTP_LENGTH);
+	}
+
+	/**
+	 * Return the otp-auth part of the QR image which is suitable to be injected into other QR generators (e.g. JS
+	 * generator).
+	 *
+	 * @param keyId
+	 *            Name of the key that you want to show up in the users authentication application. Should already be
+	 *            URL encoded.
+	 * @param secret
+	 *            Secret string that will be used when generating the current number.
+	 * @param length
+	 *            The length (number of digits) of the OTP.
+	 */
+	public static String generateOtpAuthUrl(String keyId, String secret, int length) {
+		StringBuilder sb = new StringBuilder(128);
+		addOtpAuthPart(keyId, secret, sb, length);
 		return sb.toString();
 	}
 
-	private static void addOtpAuthPart(String keyId, String secret, StringBuilder sb) {
-		sb.append("otpauth://totp/").append(keyId).append("%3Fsecret%3D").append(secret);
+	private static void addOtpAuthPart(String keyId, String secret, StringBuilder sb, int length) {
+		sb.append("otpauth://totp/")
+				.append(keyId)
+				.append("%3Fsecret%3D")
+				.append(secret)
+				.append("%26digits%3D")
+				.append(length);
 	}
 
 	/**
