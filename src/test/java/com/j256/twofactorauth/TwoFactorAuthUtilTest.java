@@ -3,7 +3,9 @@ package com.j256.twofactorauth;
 import static org.junit.Assert.assertArrayEquals;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
 
 import java.security.GeneralSecurityException;
 import java.util.Random;
@@ -144,5 +146,36 @@ public class TwoFactorAuthUtilTest {
 		assertEquals(16, TimeBasedOneTimePasswordUtil.generateBase32Secret().length());
 		assertEquals(16, TimeBasedOneTimePasswordUtil.generateBase32Secret(16).length());
 		assertEquals(1, TimeBasedOneTimePasswordUtil.generateBase32Secret(1).length());
+	}
+
+	@Test
+	public void testCoverage() throws GeneralSecurityException {
+		String secret = "ny4A5CPJZ46LXZCP";
+		TimeBasedOneTimePasswordUtil.validateCurrentNumber(secret, 948323, 15000);
+		assertEquals(TimeBasedOneTimePasswordUtil.DEFAULT_OTP_LENGTH,
+				TimeBasedOneTimePasswordUtil.generateCurrentNumberString(secret).length());
+		int len = 3;
+		assertEquals(len, TimeBasedOneTimePasswordUtil.generateCurrentNumberString(secret, len).length());
+		int num = TimeBasedOneTimePasswordUtil.generateCurrentNumber(secret);
+		assertTrue(num >= 0 && num < 1000000);
+		num = TimeBasedOneTimePasswordUtil.generateCurrentNumber(secret, 3);
+		assertTrue(num >= 0 && num < 1000);
+		assertNotNull(TimeBasedOneTimePasswordUtil.generateOtpAuthUrl("key", secret));
+		assertNotNull(TimeBasedOneTimePasswordUtil.generateOtpAuthUrl("key", secret, 8));
+		System.out.println(TimeBasedOneTimePasswordUtil.qrImageUrl("key", secret));
+		System.out.println(TimeBasedOneTimePasswordUtil.qrImageUrl("key", secret, 3));
+
+		try {
+			TimeBasedOneTimePasswordUtil.generateCurrentNumber(".");
+			fail("Should have thrown");
+		} catch (IllegalArgumentException iae) {
+			// expected
+		}
+		try {
+			TimeBasedOneTimePasswordUtil.generateCurrentNumber("^");
+			fail("Should have thrown");
+		} catch (IllegalArgumentException iae) {
+			// expected
+		}
 	}
 }
