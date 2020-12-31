@@ -25,6 +25,18 @@ You can use this code with the Google Authenticator mobile app or the Authy mobi
 
 For more details, see the [example program](https://github.com/j256/two-factor-auth/blob/master/src/test/java/com/j256/twofactorauth/TwoFactorAuthExample.java).
 
+# Maven Configuration
+
+``` xml
+<dependencies>
+	<dependency>
+		<groupId>com.j256.two-factor-auth</groupId>
+		<artifactId>two-factor-auth</artifactId>
+		<version>1.2</version>
+	</dependency>
+</dependencies>
+```
+
 # ChangeLog Release Notes
 
 See the [ChangeLog.txt file](src/main/javadoc/doc-files/changelog.txt).
