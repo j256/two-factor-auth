@@ -84,6 +84,32 @@ public class TimeBasedOneTimePasswordUtil {
 	}
 
 	/**
+	 * Generate and return a 32-character secret key in hexadecimal format (0-9A-F) using {@link SecureRandom}. Could be
+	 * used to generate the QR image to be shared with the user. Other lengths should use
+	 * {@link #generateHexSecret(int)}.
+	 */
+	public static String generateHexSecret() {
+		return generateHexSecret(32);
+	}
+
+	/**
+	 * Similar to {@link #generateHexSecret()} but specifies a character length.
+	 */
+	public static String generateHexSecret(int numDigits) {
+		StringBuilder sb = new StringBuilder(numDigits);
+		Random random = new SecureRandom();
+		for (int i = 0; i < numDigits; i++) {
+			int val = random.nextInt(16);
+			if (val < 10) {
+				sb.append((char) ('0' + val));
+			} else {
+				sb.append((char) ('A' + (val - 10)));
+			}
+		}
+		return sb.toString();
+	}
+
+	/**
 	 * Validate a given secret-number using the secret base-32 string. This allows you to set a window in milliseconds
 	 * to account for people being close to the end of the time-step. For example, if windowMillis is 10000 then this
 	 * method will check the authNumber against the generated number from 10 seconds before now through 10 seconds after
@@ -105,6 +131,25 @@ public class TimeBasedOneTimePasswordUtil {
 	public static boolean validateCurrentNumber(String base32Secret, int authNumber, long windowMillis)
 			throws GeneralSecurityException {
 		return validateCurrentNumber(base32Secret, authNumber, windowMillis, System.currentTimeMillis(),
+				DEFAULT_TIME_STEP_SECONDS, DEFAULT_OTP_LENGTH);
+	}
+
+	/**
+	 * Similar to {@link #validateCurrentNumber(String, int, long)} except it uses a hexadecimal secret instead of
+	 * base-32.
+	 * 
+	 * @param hexSecret
+	 *            Secret string encoded in hexadecimal that was used to generate the QR code or shared with the user.
+	 * @param authNumber
+	 *            Time based number provided by the user from their authenticator application.
+	 * @param windowMillis
+	 *            Number of milliseconds that they are allowed to be off and still match. This checks before and after
+	 *            the current time to account for clock variance. Set to 0 for no window.
+	 * @return True if the authNumber matched the calculated number within the specified window.
+	 */
+	public static boolean validateCurrentNumberHex(String hexSecret, int authNumber, long windowMillis)
+			throws GeneralSecurityException {
+		return validateCurrentNumberHex(hexSecret, authNumber, windowMillis, System.currentTimeMillis(),
 				DEFAULT_TIME_STEP_SECONDS, DEFAULT_OTP_LENGTH);
 	}
 
@@ -131,6 +176,29 @@ public class TimeBasedOneTimePasswordUtil {
 	}
 
 	/**
+	 * Similar to {@link #validateCurrentNumberHex(String, int, int)} except exposes other parameters. Mostly for
+	 * testing.
+	 * 
+	 * @param hexSecret
+	 *            Secret string encoded in hexadecimal that was used to generate the QR code or shared with the user.
+	 * @param authNumber
+	 *            Time based number provided by the user from their authenticator application.
+	 * @param windowMillis
+	 *            Number of milliseconds that they are allowed to be off and still match. This checks before and after
+	 *            the current time to account for clock variance. Set to 0 for no window.
+	 * @param timeMillis
+	 *            Time in milliseconds.
+	 * @param timeStepSeconds
+	 *            Time step in seconds. The default value is 30 seconds here. See {@link #DEFAULT_TIME_STEP_SECONDS}.
+	 * @return True if the authNumber matched the calculated number within the specified window.
+	 */
+	public static boolean validateCurrentNumberHex(String hexSecret, int authNumber, long windowMillis, long timeMillis,
+			int timeStepSeconds) throws GeneralSecurityException {
+		return validateCurrentNumberHex(hexSecret, authNumber, windowMillis, timeMillis, timeStepSeconds,
+				DEFAULT_OTP_LENGTH);
+	}
+
+	/**
 	 * Similar to {@link #validateCurrentNumber(String, int, int)} except exposes other parameters. Mostly for testing.
 	 * 
 	 * @param base32Secret
@@ -150,21 +218,33 @@ public class TimeBasedOneTimePasswordUtil {
 	 */
 	public static boolean validateCurrentNumber(String base32Secret, int authNumber, long windowMillis, long timeMillis,
 			int timeStepSeconds, int numDigits) throws GeneralSecurityException {
-		if (windowMillis <= 0) {
-			// just test the current time
-			long generatedNumber = generateNumber(base32Secret, timeMillis, timeStepSeconds, numDigits);
-			return (generatedNumber == authNumber);
-		}
-		// maybe check multiple values
-		long startValue = generateValue(timeMillis - windowMillis, timeStepSeconds);
-		long endValue = generateValue(timeMillis + windowMillis, timeStepSeconds);
-		for (long value = startValue; value <= endValue; value++) {
-			long generatedNumber = generateNumberFromValue(base32Secret, value, numDigits);
-			if (generatedNumber == authNumber) {
-				return true;
-			}
-		}
-		return false;
+		byte[] key = decodeBase32(base32Secret);
+		return validateCurrentNumber(key, authNumber, windowMillis, timeMillis, timeStepSeconds, numDigits);
+	}
+
+	/**
+	 * Similar to {@link #validateCurrentNumber(String, int, long, long, int, int)} except it uses hexadecimal secret
+	 * instead of base-32.
+	 * 
+	 * @param hexSecret
+	 *            Secret string encoded in hexadecimal that was used to generate the QR code or shared with the user.
+	 * @param authNumber
+	 *            Time based number provided by the user from their authenticator application.
+	 * @param windowMillis
+	 *            Number of milliseconds that they are allowed to be off and still match. This checks before and after
+	 *            the current time to account for clock variance. Set to 0 for no window.
+	 * @param timeMillis
+	 *            Time in milliseconds.
+	 * @param timeStepSeconds
+	 *            Time step in seconds. The default value is 30 seconds here. See {@link #DEFAULT_TIME_STEP_SECONDS}.
+	 * @param numDigits
+	 *            The number of digits of the OTP.
+	 * @return True if the authNumber matched the calculated number within the specified window.
+	 */
+	public static boolean validateCurrentNumberHex(String hexSecret, int authNumber, long windowMillis, long timeMillis,
+			int timeStepSeconds, int numDigits) throws GeneralSecurityException {
+		byte[] key = decodeHex(hexSecret);
+		return validateCurrentNumber(key, authNumber, windowMillis, timeMillis, timeStepSeconds, numDigits);
 	}
 
 	/**
@@ -185,11 +265,20 @@ public class TimeBasedOneTimePasswordUtil {
 	}
 
 	/**
-	 * Return the current number to be checked. This can be compared against user input.
-	 *
-	 * <p>
-	 * WARNING: This requires a system clock that is in sync with the world.
-	 * </p>
+	 * Similar to {@link #generateCurrentNumberString(String)} except this uses a hexadecimal secret.
+	 * 
+	 * @param hexSecret
+	 *            Secret string encoded in hexadecimal that was used to generate the QR code or shared with the user.
+	 * @return A number as a string with possible leading zeros which should match the user's authenticator application
+	 *         output.
+	 */
+	public static String generateCurrentNumberStringHex(String hexSecret) throws GeneralSecurityException {
+		return generateNumberStringHex(hexSecret, System.currentTimeMillis(), DEFAULT_TIME_STEP_SECONDS,
+				DEFAULT_OTP_LENGTH);
+	}
+
+	/**
+	 * Similar to {@link #generateCurrentNumberString(String, int)} but you specify the number of digits.
 	 *
 	 * @param base32Secret
 	 *            Secret string encoded using base-32 that was used to generate the QR code or shared with the user.
@@ -201,6 +290,21 @@ public class TimeBasedOneTimePasswordUtil {
 	public static String generateCurrentNumberString(String base32Secret, int numDigits)
 			throws GeneralSecurityException {
 		return generateNumberString(base32Secret, System.currentTimeMillis(), DEFAULT_TIME_STEP_SECONDS, numDigits);
+	}
+
+	/**
+	 * Similar to {@link #generateCurrentNumberString(String, int)} but you specify the number of digits.
+	 *
+	 * @param hexSecret
+	 *            Secret string encoded in hexadecimal that was used to generate the QR code or shared with the user.
+	 * @param numDigits
+	 *            The number of digits of the OTP.
+	 * @return A number as a string with possible leading zeros which should match the user's authenticator application
+	 *         output.
+	 */
+	public static String generateCurrentNumberStringHex(String hexSecret, int numDigits)
+			throws GeneralSecurityException {
+		return generateNumberStringHex(hexSecret, System.currentTimeMillis(), DEFAULT_TIME_STEP_SECONDS, numDigits);
 	}
 
 	/**
@@ -224,12 +328,41 @@ public class TimeBasedOneTimePasswordUtil {
 	}
 
 	/**
+	 * Similar to {@link #generateNumberStringHex(String, long, int, int)} except it uses a hexadecimal secret.
+	 * 
+	 * @param hexSecret
+	 *            Secret string encoded in hexadecimal that was used to generate the QR code or shared with the user.
+	 * @param timeMillis
+	 *            Time in milliseconds.
+	 * @param timeStepSeconds
+	 *            Time step in seconds. The default value is 30 seconds here. See {@link #DEFAULT_TIME_STEP_SECONDS}.
+	 * @param numDigits
+	 *            The number of digits of the OTP.
+	 * @return A number as a string with possible leading zeros which should match the user's authenticator application
+	 *         output.
+	 */
+	public static String generateNumberStringHex(String hexSecret, long timeMillis, int timeStepSeconds, int numDigits)
+			throws GeneralSecurityException {
+		int number = generateNumberHex(hexSecret, timeMillis, timeStepSeconds, numDigits);
+		return zeroPrepend(number, numDigits);
+	}
+
+	/**
 	 * Similar to {@link #generateCurrentNumberString(String)} but this returns a int instead of a string.
 	 * 
 	 * @return A number which should match the user's authenticator application output.
 	 */
 	public static int generateCurrentNumber(String base32Secret) throws GeneralSecurityException {
 		return generateNumber(base32Secret, System.currentTimeMillis(), DEFAULT_TIME_STEP_SECONDS, DEFAULT_OTP_LENGTH);
+	}
+
+	/**
+	 * Similar to {@link #generateCurrentNumberStringHex(String)} but this returns a int instead of a string.
+	 * 
+	 * @return A number which should match the user's authenticator application output.
+	 */
+	public static int generateCurrentNumberHex(String hexSecret) throws GeneralSecurityException {
+		return generateNumberHex(hexSecret, System.currentTimeMillis(), DEFAULT_TIME_STEP_SECONDS, DEFAULT_OTP_LENGTH);
 	}
 
 	/**
@@ -242,13 +375,32 @@ public class TimeBasedOneTimePasswordUtil {
 	}
 
 	/**
-	 * Similar to {@link #generateNumberString(String, long, int)} but this returns a int instead of a string.
+	 * Similar to {@link #generateCurrentNumberStringHex(String, int)} but this returns a int instead of a string.
+	 *
+	 * @return A number which should match the user's authenticator application output.
+	 */
+	public static int generateCurrentNumberHex(String hexSecret, int numDigits) throws GeneralSecurityException {
+		return generateNumberHex(hexSecret, System.currentTimeMillis(), DEFAULT_TIME_STEP_SECONDS, numDigits);
+	}
+
+	/**
+	 * Similar to {@link #generateNumberString(String, long, int, int)} but this returns a int instead of a string.
 	 * 
 	 * @return A number which should match the user's authenticator application output.
 	 */
 	public static int generateNumber(String base32Secret, long timeMillis, int timeStepSeconds)
 			throws GeneralSecurityException {
 		return generateNumber(base32Secret, timeMillis, timeStepSeconds, DEFAULT_OTP_LENGTH);
+	}
+
+	/**
+	 * Similar to {@link #generateNumberStringHex(String, long, int, int))} but this returns a int instead of a string.
+	 * 
+	 * @return A number which should match the user's authenticator application output.
+	 */
+	public static int generateNumberHex(String hexSecret, long timeMillis, int timeStepSeconds)
+			throws GeneralSecurityException {
+		return generateNumberHex(hexSecret, timeMillis, timeStepSeconds, DEFAULT_OTP_LENGTH);
 	}
 
 	/**
@@ -259,7 +411,20 @@ public class TimeBasedOneTimePasswordUtil {
 	public static int generateNumber(String base32Secret, long timeMillis, int timeStepSeconds, int numDigits)
 			throws GeneralSecurityException {
 		long value = generateValue(timeMillis, timeStepSeconds);
-		return generateNumberFromValue(base32Secret, value, numDigits);
+		byte[] key = decodeBase32(base32Secret);
+		return generateNumberFromKeyValue(key, value, numDigits);
+	}
+
+	/**
+	 * Similar to {@link #generateNumber(String, long, int, int)} but with a hexadecimal secret.
+	 *
+	 * @return A number which should match the user's authenticator application output.
+	 */
+	public static int generateNumberHex(String hexSecret, long timeMillis, int timeStepSeconds, int numDigits)
+			throws GeneralSecurityException {
+		long value = generateValue(timeMillis, timeStepSeconds);
+		byte[] key = decodeHex(hexSecret);
+		return generateNumberFromKeyValue(key, value, numDigits);
 	}
 
 	/**
@@ -355,11 +520,31 @@ public class TimeBasedOneTimePasswordUtil {
 				.append(numDigits);
 	}
 
+	private static boolean validateCurrentNumber(byte[] key, int authNumber, long windowMillis, long timeMillis,
+			int timeStepSeconds, int numDigits) throws GeneralSecurityException {
+		if (windowMillis <= 0) {
+			// just test the current time
+			long value = generateValue(timeMillis, timeStepSeconds);
+			long generatedNumber = generateNumberFromKeyValue(key, value, numDigits);
+			return (generatedNumber == authNumber);
+		}
+		// maybe check multiple values
+		long startValue = generateValue(timeMillis - windowMillis, timeStepSeconds);
+		long endValue = generateValue(timeMillis + windowMillis, timeStepSeconds);
+		for (long value = startValue; value <= endValue; value++) {
+			long generatedNumber = generateNumberFromKeyValue(key, value, numDigits);
+			if (generatedNumber == authNumber) {
+				return true;
+			}
+		}
+		return false;
+	}
+
 	private static long generateValue(long timeMillis, int timeStepSeconds) {
 		return timeMillis / 1000 / timeStepSeconds;
 	}
 
-	private static int generateNumberFromValue(String base32Secret, long value, int numDigits)
+	private static int generateNumberFromKeyValue(byte[] key, long value, int numDigits)
 			throws GeneralSecurityException {
 
 		byte[] data = new byte[8];
@@ -369,7 +554,6 @@ public class TimeBasedOneTimePasswordUtil {
 		}
 
 		// encrypt the data with the key and return the SHA1 of it in hex
-		byte[] key = decodeBase32(base32Secret);
 		SecretKeySpec signKey = new SecretKeySpec(key, "HmacSHA1");
 		// if this is expensive, could put in a thread-local
 		Mac mac = Mac.getInstance("HmacSHA1");
@@ -415,7 +599,7 @@ public class TimeBasedOneTimePasswordUtil {
 	}
 
 	/**
-	 * Decode base-32 method. I didn't want to add a dependency to Apache Codec just for this decode method. Exposed for
+	 * Decode base-32 string. I didn't want to add a dependency to Apache Codec just for this decode method. Exposed for
 	 * testing.
 	 */
 	static byte[] decodeBase32(String str) {
@@ -504,6 +688,53 @@ public class TimeBasedOneTimePasswordUtil {
 			result[resultIndex++] = (byte) working;
 		}
 		if (resultIndex != result.length) {
+			result = Arrays.copyOf(result, resultIndex);
+		}
+		return result;
+	}
+
+	/**
+	 * Decode hexadecimal string method. I didn't want to add a dependency to Apache Codec just for this decode method.
+	 * Exposed for testing.
+	 */
+	static byte[] decodeHex(String str) {
+		// each hex character encodes 4 bits
+		int numBytes = ((str.length() * 4) + 7) / 8;
+		byte[] result = new byte[numBytes];
+		int resultIndex = 0;
+		int which = 0;
+		int working = 0;
+		for (int i = 0; i < str.length(); i++) {
+			char ch = str.charAt(i);
+			int val;
+			if (ch >= '0' && ch <= '9') {
+				val = (ch - '0');
+			} else if (ch >= 'a' && ch <= 'f') {
+				val = 10 + (ch - 'a');
+			} else if (ch >= 'A' && ch <= 'F') {
+				val = 10 + (ch - 'A');
+			} else {
+				throw new IllegalArgumentException("Invalid hex character: " + ch);
+			}
+			/*
+			 * There are probably better ways to do this but this seemed the most straightforward.
+			 */
+			if (which == 0) {
+				// top 4 bits
+				working = (val & 0xF) << 4;
+				which = 1;
+			} else {
+				// lower 4 bits
+				working |= (val & 0xF);
+				result[resultIndex++] = (byte) working;
+				which = 0;
+			}
+		}
+		if (which != 0) {
+			result[resultIndex++] = (byte) (working >> 4);
+		}
+		if (resultIndex != result.length) {
+			// may not happen but let's be careful out there
 			result = Arrays.copyOf(result, resultIndex);
 		}
 		return result;
