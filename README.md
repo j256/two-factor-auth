@@ -32,7 +32,7 @@ For more details, see the [example program](https://github.com/j256/two-factor-a
 	<dependency>
 		<groupId>com.j256.two-factor-auth</groupId>
 		<artifactId>two-factor-auth</artifactId>
-		<version>1.2</version>
+		<version>1.3</version>
 	</dependency>
 </dependencies>
 ```
