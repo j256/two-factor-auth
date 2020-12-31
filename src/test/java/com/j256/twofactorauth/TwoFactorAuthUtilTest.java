@@ -164,6 +164,7 @@ public class TwoFactorAuthUtilTest {
 		assertNotNull(TimeBasedOneTimePasswordUtil.generateOtpAuthUrl("key", secret, 8));
 		System.out.println(TimeBasedOneTimePasswordUtil.qrImageUrl("key", secret));
 		System.out.println(TimeBasedOneTimePasswordUtil.qrImageUrl("key", secret, 3));
+		System.out.println(TimeBasedOneTimePasswordUtil.qrImageUrl("key", secret, 3, 500));
 
 		try {
 			TimeBasedOneTimePasswordUtil.generateCurrentNumber(".");
