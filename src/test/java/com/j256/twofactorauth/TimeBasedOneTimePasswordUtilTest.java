@@ -13,7 +13,7 @@ import java.util.Random;
 import org.apache.commons.codec.binary.Base32;
 import org.junit.Test;
 
-public class TwoFactorAuthUtilTest {
+public class TimeBasedOneTimePasswordUtilTest {
 
 	@Test
 	public void testZeroPrepend() {
