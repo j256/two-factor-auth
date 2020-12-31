@@ -1,3 +1,7 @@
+1.2: 12/31/2020
+	* Change to all ints in the public methods to remove confusion about long and int arguments.
+	* Some better docs.
+
 1.1: 4/13/2017
 	* Split out the opt-auth URL generation.  Thanks to jball.
 
