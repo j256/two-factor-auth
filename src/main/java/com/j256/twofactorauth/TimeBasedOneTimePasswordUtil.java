@@ -4,6 +4,7 @@ import java.security.GeneralSecurityException;
 import java.security.SecureRandom;
 import java.util.Arrays;
 import java.util.Random;
+
 import javax.crypto.Mac;
 import javax.crypto.spec.SecretKeySpec;
 
@@ -44,6 +45,8 @@ public class TimeBasedOneTimePasswordUtil {
 	public static final int DEFAULT_TIME_STEP_SECONDS = 30;
 	/** default number of digits in a OTP string */
 	public static int DEFAULT_OTP_LENGTH = 6;
+	/** default hight/width of QR image */
+	public static int DEFAULT_QR_DIMENTION = 200;
 	/** set to the number of digits to control 0 prefix, set to 0 for no prefix */
 	private static int MAX_NUM_DIGITS_OUTPUT = 100;
 
@@ -66,10 +69,10 @@ public class TimeBasedOneTimePasswordUtil {
 	/**
 	 * Similar to {@link #generateBase32Secret()} but specifies a character length.
 	 */
-	public static String generateBase32Secret(int length) {
-		StringBuilder sb = new StringBuilder(length);
+	public static String generateBase32Secret(int numDigits) {
+		StringBuilder sb = new StringBuilder(numDigits);
 		Random random = new SecureRandom();
-		for (int i = 0; i < length; i++) {
+		for (int i = 0; i < numDigits; i++) {
 			int val = random.nextInt(32);
 			if (val < 26) {
 				sb.append((char) ('A' + val));
@@ -165,13 +168,14 @@ public class TimeBasedOneTimePasswordUtil {
 	 *
 	 * @param base32Secret
 	 *            Secret string encoded using base-32 that was used to generate the QR code or shared with the user.
-	 * @param length
-	 *            The length (number of digits) of the OTP.
+	 * @param numDigits
+	 *            The number of digits of the OTP.
 	 * @return A number as a string with possible leading zeros which should match the user's authenticator application
 	 *         output.
 	 */
-	public static String generateCurrentNumberString(String base32Secret, int length) throws GeneralSecurityException {
-		return generateNumberString(base32Secret, System.currentTimeMillis(), DEFAULT_TIME_STEP_SECONDS, length);
+	public static String generateCurrentNumberString(String base32Secret, int numDigits)
+			throws GeneralSecurityException {
+		return generateNumberString(base32Secret, System.currentTimeMillis(), DEFAULT_TIME_STEP_SECONDS, numDigits);
 	}
 
 	/**
@@ -183,15 +187,15 @@ public class TimeBasedOneTimePasswordUtil {
 	 *            Time in milliseconds.
 	 * @param timeStepSeconds
 	 *            Time step in seconds. The default value is 30 seconds here. See {@link #DEFAULT_TIME_STEP_SECONDS}.
-	 * @param length
-	 *            The length (number of digits) of the OTP.
+	 * @param numDigits
+	 *            The number of digits of the OTP.
 	 * @return A number as a string with possible leading zeros which should match the user's authenticator application
 	 *         output.
 	 */
-	public static String generateNumberString(String base32Secret, long timeMillis, int timeStepSeconds, int length)
+	public static String generateNumberString(String base32Secret, long timeMillis, int timeStepSeconds, int numDigits)
 			throws GeneralSecurityException {
-		int number = generateNumber(base32Secret, timeMillis, timeStepSeconds, length);
-		return zeroPrepend(number, length);
+		int number = generateNumber(base32Secret, timeMillis, timeStepSeconds, numDigits);
+		return zeroPrepend(number, numDigits);
 	}
 
 	/**
@@ -208,8 +212,8 @@ public class TimeBasedOneTimePasswordUtil {
 	 *
 	 * @return A number which should match the user's authenticator application output.
 	 */
-	public static int generateCurrentNumber(String base32Secret, int length) throws GeneralSecurityException {
-		return generateNumber(base32Secret, System.currentTimeMillis(), DEFAULT_TIME_STEP_SECONDS, length);
+	public static int generateCurrentNumber(String base32Secret, int numDigits) throws GeneralSecurityException {
+		return generateNumber(base32Secret, System.currentTimeMillis(), DEFAULT_TIME_STEP_SECONDS, numDigits);
 	}
 
 	/**
@@ -227,7 +231,7 @@ public class TimeBasedOneTimePasswordUtil {
 	 *
 	 * @return A number which should match the user's authenticator application output.
 	 */
-	public static int generateNumber(String base32Secret, long timeMillis, int timeStepSeconds, int length)
+	public static int generateNumber(String base32Secret, long timeMillis, int timeStepSeconds, int numDigits)
 			throws GeneralSecurityException {
 
 		byte[] key = decodeBase32(base32Secret);
@@ -261,7 +265,7 @@ public class TimeBasedOneTimePasswordUtil {
 
 		// the token is then the last <length> digits in the number
 		long mask = 1;
-		for (int i = 0; i < length; i++) {
+		for (int i = 0; i < numDigits; i++) {
 			mask *= 10;
 		}
 		truncatedHash %= mask;
@@ -279,7 +283,7 @@ public class TimeBasedOneTimePasswordUtil {
 	 *            Secret string that will be used when generating the current number.
 	 */
 	public static String qrImageUrl(String keyId, String secret) {
-		return qrImageUrl(keyId, secret, DEFAULT_OTP_LENGTH);
+		return qrImageUrl(keyId, secret, DEFAULT_OTP_LENGTH, DEFAULT_QR_DIMENTION);
 	}
 
 	/**
@@ -291,13 +295,32 @@ public class TimeBasedOneTimePasswordUtil {
 	 *            URL encoded.
 	 * @param secret
 	 *            Secret string that will be used when generating the current number.
-	 * @param length
-	 *            The length (number of digits) of the OTP.
+	 * @param numDigits
+	 *            The number of digits of the OTP.
 	 */
-	public static String qrImageUrl(String keyId, String secret, int length) {
+	public static String qrImageUrl(String keyId, String secret, int numDigits) {
+		return qrImageUrl(keyId, secret, numDigits, DEFAULT_QR_DIMENTION);
+	}
+
+	/**
+	 * Return the QR image url thanks to Google. This can be shown to the user and scanned by the authenticator program
+	 * as an easy way to enter the secret.
+	 * 
+	 * @param keyId
+	 *            Name of the key that you want to show up in the users authentication application. Should already be
+	 *            URL encoded.
+	 * @param secret
+	 *            Secret string that will be used when generating the current number.
+	 * @param numDigits
+	 *            The number of digits of the OTP. Can be set to {@link #DEFAULT_OTP_LENGTH}.
+	 * @param imageDimension
+	 *            The dimension of the image, width and height. Can be set to {@link #DEFAULT_QR_DIMENTION}.
+	 */
+	public static String qrImageUrl(String keyId, String secret, int numDigits, int imageDimension) {
 		StringBuilder sb = new StringBuilder(128);
-		sb.append("https://chart.googleapis.com/chart?chs=200x200&cht=qr&chl=200x200&chld=M|0&cht=qr&chl=");
-		addOtpAuthPart(keyId, secret, sb, length);
+		sb.append("https://chart.googleapis.com/chart?chs=" + imageDimension + "x" + imageDimension + "&cht=qr&chl="
+				+ imageDimension + "x" + imageDimension + "&chld=M|0&cht=qr&chl=");
+		addOtpAuthPart(keyId, secret, sb, numDigits);
 		return sb.toString();
 	}
 
@@ -324,22 +347,22 @@ public class TimeBasedOneTimePasswordUtil {
 	 *            URL encoded.
 	 * @param secret
 	 *            Secret string that will be used when generating the current number.
-	 * @param length
-	 *            The length (number of digits) of the OTP.
+	 * @param numDigits
+	 *            The number of digits" of the OTP.
 	 */
-	public static String generateOtpAuthUrl(String keyId, String secret, int length) {
+	public static String generateOtpAuthUrl(String keyId, String secret, int numDigits) {
 		StringBuilder sb = new StringBuilder(128);
-		addOtpAuthPart(keyId, secret, sb, length);
+		addOtpAuthPart(keyId, secret, sb, numDigits);
 		return sb.toString();
 	}
 
-	private static void addOtpAuthPart(String keyId, String secret, StringBuilder sb, int length) {
+	private static void addOtpAuthPart(String keyId, String secret, StringBuilder sb, int numDigits) {
 		sb.append("otpauth://totp/")
 				.append(keyId)
 				.append("%3Fsecret%3D")
 				.append(secret)
 				.append("%26digits%3D")
-				.append(length);
+				.append(numDigits);
 	}
 
 	/**
