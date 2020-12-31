@@ -10,7 +10,9 @@ import static org.junit.Assert.fail;
 import java.security.GeneralSecurityException;
 import java.util.Random;
 
+import org.apache.commons.codec.DecoderException;
 import org.apache.commons.codec.binary.Base32;
+import org.apache.commons.codec.binary.Hex;
 import org.junit.Test;
 
 public class TimeBasedOneTimePasswordUtilTest {
@@ -38,6 +40,20 @@ public class TimeBasedOneTimePasswordUtilTest {
 			String encoded = base32.encodeAsString(bytes);
 			byte[] expected = base32.decode(encoded);
 			byte[] actual = TimeBasedOneTimePasswordUtil.decodeBase32(encoded);
+			assertArrayEquals(expected, actual);
+		}
+	}
+
+	@Test
+	public void testDecodeHexadecimal() throws DecoderException {
+		Random random = new Random();
+		random.nextBytes(new byte[100]);
+		for (int i = 0; i < 10000; i++) {
+			byte[] bytes = new byte[random.nextInt(10) + 1];
+			random.nextBytes(bytes);
+			String encoded = Hex.encodeHexString(bytes);
+			byte[] expected = Hex.decodeHex(encoded.toCharArray());
+			byte[] actual = TimeBasedOneTimePasswordUtil.decodeHex(encoded);
 			assertArrayEquals(expected, actual);
 		}
 	}
@@ -209,6 +225,27 @@ public class TimeBasedOneTimePasswordUtilTest {
 	}
 
 	@Test
+	public void testHexWindow() throws GeneralSecurityException {
+		String hexSecret = TimeBasedOneTimePasswordUtil.generateHexSecret();
+		long window = 10000;
+		Random random = new Random();
+		for (int i = 0; i < 1000; i++) {
+			long now = random.nextLong();
+			if (now < 0) {
+				now = -now;
+			}
+			int number = TimeBasedOneTimePasswordUtil.generateNumberHex(hexSecret, now,
+					TimeBasedOneTimePasswordUtil.DEFAULT_TIME_STEP_SECONDS);
+			assertTrue(TimeBasedOneTimePasswordUtil.validateCurrentNumberHex(hexSecret, number, window, now - window,
+					TimeBasedOneTimePasswordUtil.DEFAULT_TIME_STEP_SECONDS));
+			assertTrue(TimeBasedOneTimePasswordUtil.validateCurrentNumberHex(hexSecret, number, window, now,
+					TimeBasedOneTimePasswordUtil.DEFAULT_TIME_STEP_SECONDS));
+			assertTrue(TimeBasedOneTimePasswordUtil.validateCurrentNumberHex(hexSecret, number, window, now + window,
+					TimeBasedOneTimePasswordUtil.DEFAULT_TIME_STEP_SECONDS));
+		}
+	}
+
+	@Test
 	public void testCoverage() throws GeneralSecurityException {
 		String secret = "ny4A5CPJZ46LXZCP";
 		TimeBasedOneTimePasswordUtil.validateCurrentNumber(secret, 948323, 15000);
@@ -231,6 +268,16 @@ public class TimeBasedOneTimePasswordUtilTest {
 		assertNotNull(TimeBasedOneTimePasswordUtil.qrImageUrl("key", secret, 3));
 		assertNotNull(TimeBasedOneTimePasswordUtil.qrImageUrl("key", secret, 3, 500));
 
+		String hexSecret = "0123456789abcdefABCDEF";
+		num = TimeBasedOneTimePasswordUtil.generateCurrentNumberHex(hexSecret);
+		assertTrue(num >= 0 && num < 1000000);
+		num = TimeBasedOneTimePasswordUtil.generateCurrentNumberHex(hexSecret, 3);
+		assertTrue(num >= 0 && num < 1000);
+		TimeBasedOneTimePasswordUtil.validateCurrentNumberHex(hexSecret, num, 0);
+		assertNotNull(TimeBasedOneTimePasswordUtil.generateCurrentNumberStringHex(hexSecret));
+		assertNotNull(TimeBasedOneTimePasswordUtil.generateCurrentNumberStringHex(hexSecret, 3));
+		TimeBasedOneTimePasswordUtil.decodeHex("01234");
+
 		try {
 			TimeBasedOneTimePasswordUtil.generateCurrentNumber(".");
 			fail("Should have thrown");
@@ -239,6 +286,62 @@ public class TimeBasedOneTimePasswordUtilTest {
 		}
 		try {
 			TimeBasedOneTimePasswordUtil.generateCurrentNumber("^");
+			fail("Should have thrown");
+		} catch (IllegalArgumentException iae) {
+			// expected
+		}
+
+		try {
+			TimeBasedOneTimePasswordUtil.decodeBase32("0");
+			fail("Should have thrown");
+		} catch (IllegalArgumentException iae) {
+			// expected
+		}
+
+		try {
+			TimeBasedOneTimePasswordUtil.decodeBase32("/");
+			fail("Should have thrown");
+		} catch (IllegalArgumentException iae) {
+			// expected
+		}
+
+		try {
+			TimeBasedOneTimePasswordUtil.decodeBase32("^");
+			fail("Should have thrown");
+		} catch (IllegalArgumentException iae) {
+			// expected
+		}
+
+		try {
+			TimeBasedOneTimePasswordUtil.decodeBase32("~");
+			fail("Should have thrown");
+		} catch (IllegalArgumentException iae) {
+			// expected
+		}
+
+		try {
+			TimeBasedOneTimePasswordUtil.decodeHex("z");
+			fail("Should have thrown");
+		} catch (IllegalArgumentException iae) {
+			// expected
+		}
+
+		try {
+			TimeBasedOneTimePasswordUtil.decodeHex("/");
+			fail("Should have thrown");
+		} catch (IllegalArgumentException iae) {
+			// expected
+		}
+
+		try {
+			TimeBasedOneTimePasswordUtil.decodeHex("^");
+			fail("Should have thrown");
+		} catch (IllegalArgumentException iae) {
+			// expected
+		}
+
+		try {
+			TimeBasedOneTimePasswordUtil.decodeHex("~");
 			fail("Should have thrown");
 		} catch (IllegalArgumentException iae) {
 			// expected
