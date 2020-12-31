@@ -102,10 +102,10 @@ public class TimeBasedOneTimePasswordUtil {
 	 *            the current time to account for clock variance. Set to 0 for no window.
 	 * @return True if the authNumber matched the calculated number within the specified window.
 	 */
-	public static boolean validateCurrentNumber(String base32Secret, int authNumber, int windowMillis)
+	public static boolean validateCurrentNumber(String base32Secret, int authNumber, long windowMillis)
 			throws GeneralSecurityException {
 		return validateCurrentNumber(base32Secret, authNumber, windowMillis, System.currentTimeMillis(),
-				DEFAULT_TIME_STEP_SECONDS);
+				DEFAULT_TIME_STEP_SECONDS, DEFAULT_OTP_LENGTH);
 	}
 
 	/**
@@ -124,17 +124,42 @@ public class TimeBasedOneTimePasswordUtil {
 	 *            Time step in seconds. The default value is 30 seconds here. See {@link #DEFAULT_TIME_STEP_SECONDS}.
 	 * @return True if the authNumber matched the calculated number within the specified window.
 	 */
-	public static boolean validateCurrentNumber(String base32Secret, int authNumber, int windowMillis, long timeMillis,
+	public static boolean validateCurrentNumber(String base32Secret, int authNumber, long windowMillis, long timeMillis,
 			int timeStepSeconds) throws GeneralSecurityException {
-		long fromTimeMillis = timeMillis;
-		long toTimeMillis = timeMillis;
-		if (windowMillis > 0) {
-			fromTimeMillis -= windowMillis;
-			toTimeMillis += windowMillis;
+		return validateCurrentNumber(base32Secret, authNumber, windowMillis, timeMillis, timeStepSeconds,
+				DEFAULT_OTP_LENGTH);
+	}
+
+	/**
+	 * Similar to {@link #validateCurrentNumber(String, int, int)} except exposes other parameters. Mostly for testing.
+	 * 
+	 * @param base32Secret
+	 *            Secret string encoded using base-32 that was used to generate the QR code or shared with the user.
+	 * @param authNumber
+	 *            Time based number provided by the user from their authenticator application.
+	 * @param windowMillis
+	 *            Number of milliseconds that they are allowed to be off and still match. This checks before and after
+	 *            the current time to account for clock variance. Set to 0 for no window.
+	 * @param timeMillis
+	 *            Time in milliseconds.
+	 * @param timeStepSeconds
+	 *            Time step in seconds. The default value is 30 seconds here. See {@link #DEFAULT_TIME_STEP_SECONDS}.
+	 * @param numDigits
+	 *            The number of digits of the OTP.
+	 * @return True if the authNumber matched the calculated number within the specified window.
+	 */
+	public static boolean validateCurrentNumber(String base32Secret, int authNumber, long windowMillis, long timeMillis,
+			int timeStepSeconds, int numDigits) throws GeneralSecurityException {
+		if (windowMillis <= 0) {
+			// just test the current time
+			long generatedNumber = generateNumber(base32Secret, timeMillis, timeStepSeconds, numDigits);
+			return (generatedNumber == authNumber);
 		}
-		long timeStepMillis = timeStepSeconds * 1000;
-		for (long millis = fromTimeMillis; millis <= toTimeMillis; millis += timeStepMillis) {
-			int generatedNumber = generateNumber(base32Secret, millis, timeStepSeconds, DEFAULT_OTP_LENGTH);
+		// maybe check multiple values
+		long startValue = generateValue(timeMillis - windowMillis, timeStepSeconds);
+		long endValue = generateValue(timeMillis + windowMillis, timeStepSeconds);
+		for (long value = startValue; value <= endValue; value++) {
+			long generatedNumber = generateNumberFromValue(base32Secret, value, numDigits);
 			if (generatedNumber == authNumber) {
 				return true;
 			}
@@ -233,43 +258,8 @@ public class TimeBasedOneTimePasswordUtil {
 	 */
 	public static int generateNumber(String base32Secret, long timeMillis, int timeStepSeconds, int numDigits)
 			throws GeneralSecurityException {
-
-		byte[] key = decodeBase32(base32Secret);
-
-		byte[] data = new byte[8];
-		long value = timeMillis / 1000 / timeStepSeconds;
-		for (int i = 7; value > 0; i--) {
-			data[i] = (byte) (value & 0xFF);
-			value >>= 8;
-		}
-
-		// encrypt the data with the key and return the SHA1 of it in hex
-		SecretKeySpec signKey = new SecretKeySpec(key, "HmacSHA1");
-		// if this is expensive, could put in a thread-local
-		Mac mac = Mac.getInstance("HmacSHA1");
-		mac.init(signKey);
-		byte[] hash = mac.doFinal(data);
-
-		// take the 4 least significant bits from the encrypted string as an offset
-		int offset = hash[hash.length - 1] & 0xF;
-
-		// We're using a long because Java hasn't got unsigned int.
-		long truncatedHash = 0;
-		for (int i = offset; i < offset + 4; ++i) {
-			truncatedHash <<= 8;
-			// get the 4 bytes at the offset
-			truncatedHash |= (hash[i] & 0xFF);
-		}
-		// cut off the top bit
-		truncatedHash &= 0x7FFFFFFF;
-
-		// the token is then the last <length> digits in the number
-		long mask = 1;
-		for (int i = 0; i < numDigits; i++) {
-			mask *= 10;
-		}
-		truncatedHash %= mask;
-		return (int) truncatedHash;
+		long value = generateValue(timeMillis, timeStepSeconds);
+		return generateNumberFromValue(base32Secret, value, numDigits);
 	}
 
 	/**
@@ -363,6 +353,49 @@ public class TimeBasedOneTimePasswordUtil {
 				.append(secret)
 				.append("%26digits%3D")
 				.append(numDigits);
+	}
+
+	private static long generateValue(long timeMillis, int timeStepSeconds) {
+		return timeMillis / 1000 / timeStepSeconds;
+	}
+
+	private static int generateNumberFromValue(String base32Secret, long value, int numDigits)
+			throws GeneralSecurityException {
+
+		byte[] data = new byte[8];
+		for (int i = 7; value > 0; i--) {
+			data[i] = (byte) (value & 0xFF);
+			value >>= 8;
+		}
+
+		// encrypt the data with the key and return the SHA1 of it in hex
+		byte[] key = decodeBase32(base32Secret);
+		SecretKeySpec signKey = new SecretKeySpec(key, "HmacSHA1");
+		// if this is expensive, could put in a thread-local
+		Mac mac = Mac.getInstance("HmacSHA1");
+		mac.init(signKey);
+		byte[] hash = mac.doFinal(data);
+
+		// take the 4 least significant bits from the encrypted string as an offset
+		int offset = hash[hash.length - 1] & 0xF;
+
+		// We're using a long because Java hasn't got unsigned int.
+		long truncatedHash = 0;
+		for (int i = offset; i < offset + 4; ++i) {
+			truncatedHash <<= 8;
+			// get the 4 bytes at the offset
+			truncatedHash |= (hash[i] & 0xFF);
+		}
+		// cut off the top bit
+		truncatedHash &= 0x7FFFFFFF;
+
+		// the token is then the last <length> digits in the number
+		long mask = 1;
+		for (int i = 0; i < numDigits; i++) {
+			mask *= 10;
+		}
+		truncatedHash %= mask;
+		return (int) truncatedHash;
 	}
 
 	/**

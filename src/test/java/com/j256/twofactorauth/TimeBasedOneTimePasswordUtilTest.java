@@ -149,11 +149,76 @@ public class TimeBasedOneTimePasswordUtilTest {
 	}
 
 	@Test
+	public void testWindow() throws GeneralSecurityException {
+		String secret = TimeBasedOneTimePasswordUtil.generateBase32Secret();
+		long window = 10000;
+		Random random = new Random();
+		for (int i = 0; i < 1000; i++) {
+			long now = random.nextLong();
+			if (now < 0) {
+				now = -now;
+			}
+			int number = TimeBasedOneTimePasswordUtil.generateNumber(secret, now,
+					TimeBasedOneTimePasswordUtil.DEFAULT_TIME_STEP_SECONDS);
+			assertTrue(TimeBasedOneTimePasswordUtil.validateCurrentNumber(secret, number, window, now - window,
+					TimeBasedOneTimePasswordUtil.DEFAULT_TIME_STEP_SECONDS));
+			assertTrue(TimeBasedOneTimePasswordUtil.validateCurrentNumber(secret, number, window, now,
+					TimeBasedOneTimePasswordUtil.DEFAULT_TIME_STEP_SECONDS));
+			assertTrue(TimeBasedOneTimePasswordUtil.validateCurrentNumber(secret, number, window, now + window,
+					TimeBasedOneTimePasswordUtil.DEFAULT_TIME_STEP_SECONDS));
+		}
+	}
+
+	@Test
+	public void testWindowStuff() throws GeneralSecurityException {
+		String secret = TimeBasedOneTimePasswordUtil.generateBase32Secret();
+		long window = 10000;
+		long now = 5462669356666716002L;
+		int number = TimeBasedOneTimePasswordUtil.generateNumber(secret, now,
+				TimeBasedOneTimePasswordUtil.DEFAULT_TIME_STEP_SECONDS);
+		assertTrue(TimeBasedOneTimePasswordUtil.validateCurrentNumber(secret, number, window, now - window,
+				TimeBasedOneTimePasswordUtil.DEFAULT_TIME_STEP_SECONDS));
+		assertTrue(TimeBasedOneTimePasswordUtil.validateCurrentNumber(secret, number, window, now,
+				TimeBasedOneTimePasswordUtil.DEFAULT_TIME_STEP_SECONDS));
+		assertTrue(TimeBasedOneTimePasswordUtil.validateCurrentNumber(secret, number, window, now + window,
+				TimeBasedOneTimePasswordUtil.DEFAULT_TIME_STEP_SECONDS));
+
+		now = 8835485943423840000L;
+		number = TimeBasedOneTimePasswordUtil.generateNumber(secret, now,
+				TimeBasedOneTimePasswordUtil.DEFAULT_TIME_STEP_SECONDS);
+		assertFalse(TimeBasedOneTimePasswordUtil.validateCurrentNumber(secret, number, window, now - window - 1,
+				TimeBasedOneTimePasswordUtil.DEFAULT_TIME_STEP_SECONDS));
+		assertTrue(TimeBasedOneTimePasswordUtil.validateCurrentNumber(secret, number, window, now - window,
+				TimeBasedOneTimePasswordUtil.DEFAULT_TIME_STEP_SECONDS));
+		assertTrue(TimeBasedOneTimePasswordUtil.validateCurrentNumber(secret, number, window, now,
+				TimeBasedOneTimePasswordUtil.DEFAULT_TIME_STEP_SECONDS));
+		assertTrue(TimeBasedOneTimePasswordUtil.validateCurrentNumber(secret, number, window, now + window,
+				TimeBasedOneTimePasswordUtil.DEFAULT_TIME_STEP_SECONDS));
+
+		now = 8363681401523009999L;
+		number = TimeBasedOneTimePasswordUtil.generateNumber(secret, now,
+				TimeBasedOneTimePasswordUtil.DEFAULT_TIME_STEP_SECONDS);
+		assertTrue(TimeBasedOneTimePasswordUtil.validateCurrentNumber(secret, number, window, now - window,
+				TimeBasedOneTimePasswordUtil.DEFAULT_TIME_STEP_SECONDS));
+		assertTrue(TimeBasedOneTimePasswordUtil.validateCurrentNumber(secret, number, window, now,
+				TimeBasedOneTimePasswordUtil.DEFAULT_TIME_STEP_SECONDS));
+		assertTrue(TimeBasedOneTimePasswordUtil.validateCurrentNumber(secret, number, window, now + window,
+				TimeBasedOneTimePasswordUtil.DEFAULT_TIME_STEP_SECONDS));
+		assertFalse(TimeBasedOneTimePasswordUtil.validateCurrentNumber(secret, number, window, now + window + 1,
+				TimeBasedOneTimePasswordUtil.DEFAULT_TIME_STEP_SECONDS));
+	}
+
+	@Test
 	public void testCoverage() throws GeneralSecurityException {
 		String secret = "ny4A5CPJZ46LXZCP";
 		TimeBasedOneTimePasswordUtil.validateCurrentNumber(secret, 948323, 15000);
 		assertEquals(TimeBasedOneTimePasswordUtil.DEFAULT_OTP_LENGTH,
 				TimeBasedOneTimePasswordUtil.generateCurrentNumberString(secret).length());
+
+		int number = TimeBasedOneTimePasswordUtil.generateCurrentNumber(secret);
+		assertTrue(TimeBasedOneTimePasswordUtil.validateCurrentNumber(secret, number, 0, System.currentTimeMillis(),
+				TimeBasedOneTimePasswordUtil.DEFAULT_TIME_STEP_SECONDS));
+
 		int len = 3;
 		assertEquals(len, TimeBasedOneTimePasswordUtil.generateCurrentNumberString(secret, len).length());
 		int num = TimeBasedOneTimePasswordUtil.generateCurrentNumber(secret);
