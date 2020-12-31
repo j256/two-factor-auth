@@ -151,11 +151,9 @@ public class TimeBasedOneTimePasswordUtil {
 	public static boolean validateCurrentNumber(String base32Secret, int authNumber, long windowMillis, long timeMillis,
 			int timeStepSeconds, int numDigits) throws GeneralSecurityException {
 		if (windowMillis <= 0) {
-			// just test the time
-			long generatedNumber = generateNumberFromValue(base32Secret, timeMillis, numDigits);
-			if (generatedNumber == authNumber) {
-				return true;
-			}
+			// just test the current time
+			long generatedNumber = generateNumber(base32Secret, timeMillis, timeStepSeconds, numDigits);
+			return (generatedNumber == authNumber);
 		}
 		// maybe check multiple values
 		long startValue = generateValue(timeMillis - windowMillis, timeStepSeconds);

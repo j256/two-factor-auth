@@ -153,7 +153,7 @@ public class TimeBasedOneTimePasswordUtilTest {
 		String secret = TimeBasedOneTimePasswordUtil.generateBase32Secret();
 		long window = 10000;
 		Random random = new Random();
-		for (int i = 0; i < 10000000; i++) {
+		for (int i = 0; i < 1000; i++) {
 			long now = random.nextLong();
 			if (now < 0) {
 				now = -now;
@@ -214,6 +214,11 @@ public class TimeBasedOneTimePasswordUtilTest {
 		TimeBasedOneTimePasswordUtil.validateCurrentNumber(secret, 948323, 15000);
 		assertEquals(TimeBasedOneTimePasswordUtil.DEFAULT_OTP_LENGTH,
 				TimeBasedOneTimePasswordUtil.generateCurrentNumberString(secret).length());
+
+		int number = TimeBasedOneTimePasswordUtil.generateCurrentNumber(secret);
+		assertTrue(TimeBasedOneTimePasswordUtil.validateCurrentNumber(secret, number, 0, System.currentTimeMillis(),
+				TimeBasedOneTimePasswordUtil.DEFAULT_TIME_STEP_SECONDS));
+
 		int len = 3;
 		assertEquals(len, TimeBasedOneTimePasswordUtil.generateCurrentNumberString(secret, len).length());
 		int num = TimeBasedOneTimePasswordUtil.generateCurrentNumber(secret);
