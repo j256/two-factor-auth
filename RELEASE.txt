@@ -1,6 +1,6 @@
 -------------------------------------------------------------------------------
 
-The following set of tasks should be performed when the libary gets released.
+The following set of tasks should be performed when the library gets released.
 
 1) Update the ChangeLog file with the release date.
 2) Update the version numbers in the following files:
@@ -12,10 +12,7 @@ The following set of tasks should be performed when the libary gets released.
 5) mvn test
 6) Run release.sh script.  It will publish to sonos.
 7) Close and release sonos package.
-8) git tag the release:
-   git tag two-factor-auth_release_X_X
-   git push origin two-factor-auth_release_X_X
-9) create release on github for X.X.X from that tag
+8) create release on github for X.X.X from that tag
    https://github.com/j256/two-factor-auth/tags
 
 -------------------------------------------------------------------------------
