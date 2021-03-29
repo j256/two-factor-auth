@@ -1,5 +1,7 @@
 package com.j256.twofactorauth;
 
+import java.io.UnsupportedEncodingException;
+import java.net.URLEncoder;
 import java.security.GeneralSecurityException;
 import java.security.SecureRandom;
 import java.util.Arrays;
@@ -472,11 +474,13 @@ public class TimeBasedOneTimePasswordUtil {
 	 *            The dimension of the image, width and height. Can be set to {@link #DEFAULT_QR_DIMENTION}.
 	 */
 	public static String qrImageUrl(String keyId, String secret, int numDigits, int imageDimension) {
-		StringBuilder sb = new StringBuilder(128);
-		sb.append("https://chart.googleapis.com/chart?chs=" + imageDimension + "x" + imageDimension + "&cht=qr&chl="
-				+ imageDimension + "x" + imageDimension + "&chld=M|0&cht=qr&chl=");
-		addOtpAuthPart(keyId, secret, sb, numDigits);
-		return sb.toString();
+		return new StringBuilder(128)
+				.append("https://chart.googleapis.com/chart?chs=")
+				.append(imageDimension).append('x').append(imageDimension)
+				.append("&cht=qr&chl=").append(imageDimension).append('x').append(imageDimension)
+				.append("&chld=M|0&cht=qr&chl=")
+				.append(urlEncodeSegmentOrQuery(generateOtpAuthUrl(keyId, secret, numDigits)))
+				.toString();
 	}
 
 	/**
@@ -506,18 +510,23 @@ public class TimeBasedOneTimePasswordUtil {
 	 *            The number of digits" of the OTP.
 	 */
 	public static String generateOtpAuthUrl(String keyId, String secret, int numDigits) {
-		StringBuilder sb = new StringBuilder(128);
-		addOtpAuthPart(keyId, secret, sb, numDigits);
-		return sb.toString();
+		return new StringBuilder(128)
+				.append("otpauth://totp/")
+				.append(urlEncodeSegmentOrQuery(keyId))
+				.append("?secret=")
+				.append(urlEncodeSegmentOrQuery(secret))
+				.append("&digits=")
+				.append(numDigits)
+				.toString();
 	}
 
-	private static void addOtpAuthPart(String keyId, String secret, StringBuilder sb, int numDigits) {
-		sb.append("otpauth://totp/")
-				.append(keyId)
-				.append("%3Fsecret%3D")
-				.append(secret)
-				.append("%26digits%3D")
-				.append(numDigits);
+	private static String urlEncodeSegmentOrQuery(String raw)
+	{
+		try {
+			return URLEncoder.encode(raw, "UTF-8").replace("+", "%20");
+		} catch (UnsupportedEncodingException e) {
+			throw new RuntimeException("Could not url-encode as UTF-8 is missing", e);
+		}
 	}
 
 	private static boolean validateCurrentNumber(byte[] key, int authNumber, long windowMillis, long timeMillis,
