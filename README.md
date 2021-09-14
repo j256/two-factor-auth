@@ -36,6 +36,11 @@ For more details, see the [example program](https://github.com/j256/two-factor-a
 	</dependency>
 </dependencies>
 ```
+# Use with Java Modules
+If you get a compilation error like `package com.j256.twofactorauth is declared in the unnamed module, but module xxxx does not read it`
+then you are using the [Java Platform Module System](https://en.wikipedia.org/wiki/Java_Platform_Module_System) used in Java 9 and above.
+
+The get your program to compile add `requires two.factor.auth;` to the file `module-info.java` located somewhere in your `src` folder/directory.
 
 # ChangeLog Release Notes
 
