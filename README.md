@@ -6,7 +6,7 @@ You can use this code with the Google Authenticator mobile app or the Authy mobi
 
 * See the [wikipedia page about TOTP](https://en.wikipedia.org/wiki/Time-based_One-time_Password_Algorithm).	
 * Code available from the [git repository](https://github.com/j256/two-factor-auth).  [![CircleCI](https://circleci.com/gh/j256/two-factor-auth.svg?style=svg)](https://circleci.com/gh/j256/two-factor-auth) [![CodeCov](https://img.shields.io/codecov/c/github/j256/two-factor-auth.svg)](https://codecov.io/github/j256/two-factor-auth/)
-* Maven packages are published via [![Maven Central](https://maven-badges.herokuapp.com/maven-central/com.j256.two-factor-auth/two-factor-auth/badge.svg?style=flat-square)](https://maven-badges.herokuapp.com/maven-central/com.j256.two-factor-auth/two-factor-auth/)
+* Maven packages are published via [![Maven Central](https://maven-badges.herokuapp.com/maven-central/com.j256.two-factor-auth/two-factor-auth/badge.svg?style=flat-square)](https://maven-badges.herokuapp.com/maven-central/com.j256.two-factor-auth/two-factor-auth/) [![javadoc](https://javadoc.io/badge2/com.j256.two-factor-auth/two-factor-auth/javadoc.svg)](https://javadoc.io/doc/com.j256.two-factor-auth/two-factor-auth)
 
 ## To get this to work you:
 
