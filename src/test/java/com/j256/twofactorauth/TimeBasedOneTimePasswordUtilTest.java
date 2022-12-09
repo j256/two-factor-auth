@@ -246,6 +246,17 @@ public class TimeBasedOneTimePasswordUtilTest {
 	}
 
 	@Test
+	public void testQrImageUrl() {
+		String keyId = "Schl\u00FCssel";
+		String secret = "ny4A5CPJZ46LXZCP";
+		assertEquals("otpauth://totp/Schl%C3%BCssel?secret=ny4A5CPJZ46LXZCP&digits=6", TimeBasedOneTimePasswordUtil.generateOtpAuthUrl(keyId, secret));
+		assertEquals("otpauth://totp/Schl%C3%BCssel?secret=ny4A5CPJZ46LXZCP&digits=8", TimeBasedOneTimePasswordUtil.generateOtpAuthUrl(keyId, secret, 8));
+		assertEquals("https://chart.googleapis.com/chart?chs=200x200&cht=qr&chl=200x200&chld=M|0&cht=qr&chl=otpauth%3A%2F%2Ftotp%2FSchl%25C3%25BCssel%3Fsecret%3Dny4A5CPJZ46LXZCP%26digits%3D6", TimeBasedOneTimePasswordUtil.qrImageUrl(keyId, secret));
+		assertEquals("https://chart.googleapis.com/chart?chs=200x200&cht=qr&chl=200x200&chld=M|0&cht=qr&chl=otpauth%3A%2F%2Ftotp%2FSchl%25C3%25BCssel%3Fsecret%3Dny4A5CPJZ46LXZCP%26digits%3D3", TimeBasedOneTimePasswordUtil.qrImageUrl(keyId, secret, 3));
+		assertEquals("https://chart.googleapis.com/chart?chs=500x500&cht=qr&chl=500x500&chld=M|0&cht=qr&chl=otpauth%3A%2F%2Ftotp%2FSchl%25C3%25BCssel%3Fsecret%3Dny4A5CPJZ46LXZCP%26digits%3D3", TimeBasedOneTimePasswordUtil.qrImageUrl(keyId, secret, 3, 500));
+	}
+
+	@Test
 	public void testCoverage() throws GeneralSecurityException {
 		String secret = "ny4A5CPJZ46LXZCP";
 		TimeBasedOneTimePasswordUtil.validateCurrentNumber(secret, 948323, 15000);
@@ -262,11 +273,6 @@ public class TimeBasedOneTimePasswordUtilTest {
 		assertTrue(num >= 0 && num < 1000000);
 		num = TimeBasedOneTimePasswordUtil.generateCurrentNumber(secret, 3);
 		assertTrue(num >= 0 && num < 1000);
-		assertNotNull(TimeBasedOneTimePasswordUtil.generateOtpAuthUrl("key", secret));
-		assertNotNull(TimeBasedOneTimePasswordUtil.generateOtpAuthUrl("key", secret, 8));
-		assertNotNull(TimeBasedOneTimePasswordUtil.qrImageUrl("key", secret));
-		assertNotNull(TimeBasedOneTimePasswordUtil.qrImageUrl("key", secret, 3));
-		assertNotNull(TimeBasedOneTimePasswordUtil.qrImageUrl("key", secret, 3, 500));
 
 		String hexSecret = "0123456789abcdefABCDEF";
 		num = TimeBasedOneTimePasswordUtil.generateCurrentNumberHex(hexSecret);
